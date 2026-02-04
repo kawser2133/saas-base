@@ -1,0 +1,553 @@
+<div class="settings-container">
+  <!-- Page Header -->
+  <div class="settings-header">
+    <div class="header-content">
+      <div class="header-left">
+        <div class="header-icon">
+          <i class="fas fa-cog"></i>
+        </div>
+        <div class="header-info">
+          <h1 class="settings-title">Settings</h1>
+          <p class="settings-subtitle">Manage your account preferences and security</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="settings-tabs" *ngIf="prefs">
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'appearance'"
+      (click)="setActiveTab('appearance')">
+      <i class="fas fa-palette"></i>
+      <span>Appearance & Preferences</span>
+    </button>
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'security'"
+      (click)="setActiveTab('security')">
+      <i class="fas fa-shield-alt"></i>
+      <span>Security & Password</span>
+    </button>
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'sessions'"
+      (click)="setActiveTab('sessions')">
+      <i class="fas fa-laptop-code"></i>
+      <span>Sessions</span>
+    </button>
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'mfa'"
+      (click)="setActiveTab('mfa')">
+      <i class="fas fa-shield-alt"></i>
+      <span>MFA Settings</span>
+    </button>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="settings-content" *ngIf="prefs">
+    <!-- Appearance & Preferences Tab -->
+    <div class="tab-content" *ngIf="activeTab === 'appearance'">
+      <div class="settings-card">
+        <div class="card-header">
+          <div class="card-header-content">
+            <div class="card-icon preferences">
+              <i class="fas fa-palette"></i>
+            </div>
+            <div>
+              <h2 class="card-title">Appearance & Preferences</h2>
+              <p class="card-subtitle">Customize how you experience the application</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="settings-group">
+            <!-- Theme Setting -->
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-icon theme">
+                  <i class="fas fa-moon"></i>
+                </div>
+                <div class="setting-details">
+                  <h3 class="setting-label">Theme</h3>
+                  <p class="setting-description">Choose between light and dark mode</p>
+                </div>
+              </div>
+              <div class="setting-control">
+                <select class="select-input" [(ngModel)]="prefs.theme" name="theme" (change)="onThemeChange()">
+                  <option value="light">
+                    <i class="fas fa-sun"></i> Light
+                  </option>
+                  <option value="dark">
+                    <i class="fas fa-moon"></i> Dark
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Language Setting -->
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-icon language">
+                  <i class="fas fa-globe"></i>
+                </div>
+                <div class="setting-details">
+                  <h3 class="setting-label">Language</h3>
+                  <p class="setting-description">Select your preferred language</p>
+                </div>
+              </div>
+              <div class="setting-control">
+                <select class="select-input" [(ngModel)]="prefs.language" name="language">
+                  <option value="en">English</option>
+                  <option value="bn">বাংলা (Bangla)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Notifications Setting -->
+            <div class="setting-item notifications-section">
+              <div class="setting-info">
+                <div class="setting-icon notifications">
+                  <i class="fas fa-bell"></i>
+                </div>
+                <div class="setting-details">
+                  <h3 class="setting-label">Notifications</h3>
+                  <p class="setting-description">Choose how you want to receive notifications</p>
+                </div>
+              </div>
+              <div class="setting-control notifications-controls">
+                <label class="checkbox-label">
+                  <input type="checkbox" [(ngModel)]="prefs.notifications.email" name="notifEmail" class="checkbox-input">
+                  <span class="checkbox-text">
+                    <i class="fas fa-envelope"></i>
+                    Email Notifications
+                  </span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" [(ngModel)]="prefs.notifications.push" name="notifPush" class="checkbox-input">
+                  <span class="checkbox-text">
+                    <i class="fas fa-mobile-alt"></i>
+                    Push Notifications
+                  </span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" [(ngModel)]="prefs.notifications.sms" name="notifSms" class="checkbox-input">
+                  <span class="checkbox-text">
+                    <i class="fas fa-sms"></i>
+                    SMS Notifications
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-actions">
+            <button class="btn btn-primary" (click)="save()" [disabled]="saving">
+              <i class="fas fa-save"></i>
+              {{ saving ? 'Saving...' : 'Save Preferences' }}
+            </button>
+            <a class="btn btn-secondary" [routerLink]="['/privacy']">
+              <i class="fas fa-shield-alt"></i>
+              Privacy Center
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Security & Password Tab -->
+    <div class="tab-content" *ngIf="activeTab === 'security'">
+      <div class="settings-card">
+        <div class="card-header">
+          <div class="card-header-content">
+            <div class="card-icon security">
+              <i class="fas fa-shield-alt"></i>
+            </div>
+            <div>
+              <h2 class="card-title">Security & Password</h2>
+              <p class="card-subtitle">Manage your account security and password</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="password-form">
+            <div class="form-field">
+              <label class="field-label">Current Password</label>
+              <div class="password-input-wrapper">
+                <input
+                  [type]="showCurrentPassword ? 'text' : 'password'"
+                  class="field-input"
+                  [(ngModel)]="pw.currentPassword"
+                  name="currentPassword"
+                  placeholder="Enter your current password"
+                  required
+                />
+                <button 
+                  type="button" 
+                  class="password-toggle"
+                  (click)="showCurrentPassword = !showCurrentPassword"
+                  tabindex="-1">
+                  <i class="fas" [class.fa-eye]="!showCurrentPassword" [class.fa-eye-slash]="showCurrentPassword"></i>
+                </button>
+              </div>
+              <span class="field-hint">Enter your existing password to confirm your identity</span>
+            </div>
+
+            <div class="form-row">
+              <div class="form-field">
+                <label class="field-label">New Password</label>
+                <div class="password-input-wrapper">
+                  <input
+                    [type]="showNewPassword ? 'text' : 'password'"
+                    class="field-input"
+                    [(ngModel)]="pw.newPassword"
+                    (ngModelChange)="onNewPasswordChange()"
+                    name="newPassword"
+                    placeholder="Enter new password"
+                    required
+                  />
+                  <button 
+                    type="button" 
+                    class="password-toggle"
+                    (click)="showNewPassword = !showNewPassword"
+                    tabindex="-1">
+                    <i class="fas" [class.fa-eye]="!showNewPassword" [class.fa-eye-slash]="showNewPassword"></i>
+                  </button>
+                </div>
+                <span class="field-hint">Minimum 8 characters</span>
+                <div class="password-validation-errors" *ngIf="passwordValidationErrors.length > 0 && !isValidatingPassword">
+                  <ul>
+                    <li *ngFor="let error of passwordValidationErrors">{{ error }}</li>
+                  </ul>
+                </div>
+                <div class="password-validating" *ngIf="isValidatingPassword">
+                  <i class="fas fa-spinner fa-spin"></i> Validating password...
+                </div>
+              </div>
+
+              <div class="form-field">
+                <label class="field-label">Confirm New Password</label>
+                <div class="password-input-wrapper">
+                  <input
+                    [type]="showConfirmPassword ? 'text' : 'password'"
+                    class="field-input"
+                    [(ngModel)]="pw.confirmPassword"
+                    name="confirmPassword"
+                    placeholder="Confirm new password"
+                    required
+                  />
+                  <button 
+                    type="button" 
+                    class="password-toggle"
+                    (click)="showConfirmPassword = !showConfirmPassword"
+                    tabindex="-1">
+                    <i class="fas" [class.fa-eye]="!showConfirmPassword" [class.fa-eye-slash]="showConfirmPassword"></i>
+                  </button>
+                </div>
+                <span class="field-hint">Must match new password</span>
+              </div>
+            </div>
+
+            <div class="password-requirements">
+              <h4 class="requirements-title">
+                <i class="fas fa-info-circle"></i>
+                Password Requirements
+              </h4>
+              <ul class="requirements-list">
+                <li *ngFor="let requirement of passwordRequirements">{{ requirement }}</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="card-actions">
+            <button 
+              class="btn btn-primary" 
+              (click)="changePassword()" 
+              [disabled]="changingPw || !pw.currentPassword || !pw.newPassword || !pw.confirmPassword || passwordValidationErrors.length > 0">
+              <i class="fas fa-key"></i>
+              {{ changingPw ? 'Updating...' : 'Update Password' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sessions Tab -->
+    <div class="tab-content" *ngIf="activeTab === 'sessions'">
+      <div class="settings-card">
+        <div class="card-header">
+          <div class="card-header-content">
+            <div class="card-icon sessions">
+              <i class="fas fa-laptop-code"></i>
+            </div>
+            <div>
+              <h2 class="card-title">Active Sessions</h2>
+              <p class="card-subtitle">Manage your active sessions and devices</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div *ngIf="isLoadingSessions" class="loading-state">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>Loading sessions...</span>
+          </div>
+
+          <div *ngIf="!isLoadingSessions && sessions.length === 0" class="empty-state">
+            <i class="fas fa-laptop-code"></i>
+            <h3>No active sessions</h3>
+            <p>You don't have any active sessions at the moment.</p>
+          </div>
+
+          <div *ngIf="!isLoadingSessions && sessions.length > 0" class="sessions-list">
+            <div *ngFor="let session of sessions" class="session-item">
+              <div class="session-info">
+                <div class="session-icon">
+                  <i class="fas fa-laptop"></i>
+                </div>
+                <div class="session-details">
+                  <div class="session-device">
+                    <strong>{{ session.deviceName || 'Unknown Device' }}</strong>
+                    <span class="session-badge" *ngIf="getCurrentSessionId() === session.sessionId">Current</span>
+                  </div>
+                  <div class="session-meta">
+                    <span><i class="fas fa-globe"></i> {{ session.browserName || 'Unknown' }} {{ session.browserVersion || '' }}</span>
+                    <span><i class="fas fa-desktop"></i> {{ session.operatingSystem || 'Unknown' }}</span>
+                    <span *ngIf="session.location"><i class="fas fa-map-marker-alt"></i> {{ session.location }}</span>
+                    <span><i class="fas fa-network-wired"></i> {{ session.ipAddress || '-' }}</span>
+                  </div>
+                  <div class="session-time">
+                    <span><i class="fas fa-clock"></i> Last activity: {{ session.lastActivityAt | date: 'medium' }}</span>
+                    <span><i class="fas fa-calendar-times"></i> Expires: {{ session.expiresAt | date: 'medium' }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="session-actions">
+                <button 
+                  class="btn btn-outline btn-sm btn-danger" 
+                  (click)="revokeSession(session)"
+                  [disabled]="getCurrentSessionId() === session.sessionId && sessionsTotalCount === 1"
+                  [title]="getCurrentSessionId() === session.sessionId && sessionsTotalCount === 1 ? 'Cannot revoke your only active session' : 'Revoke this session'">
+                  <i class="fas fa-ban"></i>
+                  <span>Revoke</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pagination -->
+          <div *ngIf="!isLoadingSessions && sessionsTotalPages > 1" class="sessions-pagination">
+            <div class="pagination-info">
+              <span class="items-per-page">
+                <label>Rows per page:</label>
+                <select class="form-select" [(ngModel)]="sessionsPageSize" (ngModelChange)="onSessionsPageSizeChange($event)">
+                  <option [ngValue]="10">10</option>
+                  <option [ngValue]="20">20</option>
+                  <option [ngValue]="50">50</option>
+                  <option [ngValue]="100">100</option>
+                </select>
+              </span>
+              <span class="pagination-text">
+                Showing {{ (sessionsPage - 1) * sessionsPageSize + 1 }} to
+                {{ Math.min(sessionsPage * sessionsPageSize, sessionsTotalCount) }} of
+                {{ sessionsTotalCount }} entries
+              </span>
+            </div>
+
+            <div class="pagination-controls">
+              <button class="btn btn-outline btn-sm" [disabled]="sessionsPage === 1" (click)="onSessionsPageChange(1)">
+                <i class="fas fa-angle-double-left"></i>
+              </button>
+              <button class="btn btn-outline btn-sm" [disabled]="sessionsPage === 1" (click)="onSessionsPageChange(sessionsPage - 1)">
+                <i class="fas fa-angle-left"></i>
+              </button>
+
+              <span class="page-info">
+                Page {{ sessionsPage }} of {{ sessionsTotalPages }}
+              </span>
+
+              <button class="btn btn-outline btn-sm" [disabled]="sessionsPage === sessionsTotalPages"
+                (click)="onSessionsPageChange(sessionsPage + 1)">
+                <i class="fas fa-angle-right"></i>
+              </button>
+              <button class="btn btn-outline btn-sm" [disabled]="sessionsPage === sessionsTotalPages"
+                (click)="onSessionsPageChange(sessionsTotalPages)">
+                <i class="fas fa-angle-double-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MFA Settings Tab -->
+    <div class="tab-content" *ngIf="activeTab === 'mfa'">
+      <div class="settings-card">
+        <div class="card-header">
+          <div class="card-header-content">
+            <div class="card-icon mfa">
+              <i class="fas fa-shield-alt"></i>
+            </div>
+            <div>
+              <h2 class="card-title">MFA Settings</h2>
+              <p class="card-subtitle">Manage your multi-factor authentication settings</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div *ngIf="isLoadingMfa" class="loading-state">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>Loading MFA settings...</span>
+          </div>
+
+          <div *ngIf="!isLoadingMfa && currentUserMfaSettings && currentUserMfaSettings.enabledMethods && currentUserMfaSettings.enabledMethods.length > 0" class="mfa-default-selector">
+            <div class="field">
+              <div class="field-row">
+                <label>Default MFA Method</label>
+                <div class="input">
+                  <select [(ngModel)]="selectedDefaultMfaMethod" name="defaultMfaMethod" class="form-control" (change)="setDefaultMfaMethod()">
+                    <option value="">Select default method...</option>
+                    <option *ngFor="let method of getFilteredMfaMethods()" [value]="method">
+                      {{ method === 'SMS' ? 'SMS' : method === 'EMAIL' ? 'Email' : method === 'BACKUPCODE' ? 'Backup Code' : method }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+              <p class="field-hint">This method will be used by default during login if multiple MFA methods are enabled.</p>
+            </div>
+          </div>
+
+          <div *ngIf="!isLoadingMfa && currentUserMfaSettings" class="mfa-settings-grid">
+            <!-- SMS Codes -->
+            <div class="mfa-method-card">
+              <div class="mfa-method-header">
+                <h3><i class="fas fa-sms"></i> SMS Codes</h3>
+              </div>
+              <div class="mfa-method-body">
+                <p class="mfa-description">{{ currentUserMfaSettings.phoneNumberMasked || 'Phone number not set' }}</p>
+                <div class="mfa-input-group" *ngIf="!currentUserMfaSettings.enabledMethods?.includes('SMS')">
+                  <button class="btn btn-outline" (click)="sendMfaCode('SMS')">
+                    <i class="fas fa-paper-plane"></i> Send Code
+                  </button>
+                  <input type="text" placeholder="Enter SMS code" [(ngModel)]="smsCode" class="form-control field-input" maxlength="6" />
+                  <button class="btn btn-primary" (click)="verifyMfaCode('SMS')">Enable</button>
+                </div>
+                <div *ngIf="currentUserMfaSettings.enabledMethods?.includes('SMS')" class="mfa-enabled">
+                  <i class="fas fa-check-circle text-success"></i> SMS MFA is enabled
+                </div>
+              </div>
+              <div class="mfa-method-actions" *ngIf="currentUserMfaSettings.enabledMethods?.includes('SMS')">
+                <button class="btn btn-outline btn-danger btn-sm" (click)="disableMfa('SMS')">
+                  <i class="fas fa-ban"></i> Disable SMS
+                </button>
+              </div>
+            </div>
+
+            <!-- Email Codes -->
+            <div class="mfa-method-card">
+              <div class="mfa-method-header">
+                <h3><i class="fas fa-envelope"></i> Email Codes</h3>
+              </div>
+              <div class="mfa-method-body">
+                <p class="mfa-description">{{ currentUserMfaSettings.emailMasked || 'Email address not set' }}</p>
+                <div class="mfa-input-group" *ngIf="!currentUserMfaSettings.enabledMethods?.includes('EMAIL')">
+                  <button class="btn btn-outline" (click)="sendMfaCode('EMAIL')">
+                    <i class="fas fa-paper-plane"></i> Send Code
+                  </button>
+                  <input type="text" placeholder="Enter Email code" [(ngModel)]="emailCode" class="form-control field-input" maxlength="6" />
+                  <button class="btn btn-primary" (click)="verifyMfaCode('EMAIL')">Enable</button>
+                </div>
+                <div *ngIf="currentUserMfaSettings.enabledMethods?.includes('EMAIL')" class="mfa-enabled">
+                  <i class="fas fa-check-circle text-success"></i> Email MFA is enabled
+                </div>
+              </div>
+              <div class="mfa-method-actions" *ngIf="currentUserMfaSettings.enabledMethods?.includes('EMAIL')">
+                <button class="btn btn-outline btn-danger btn-sm" (click)="disableMfa('EMAIL')">
+                  <i class="fas fa-ban"></i> Disable Email
+                </button>
+              </div>
+            </div>
+
+            <!-- Backup Codes -->
+            <div class="mfa-method-card">
+              <div class="mfa-method-header">
+                <h3><i class="fas fa-key"></i> Backup Codes</h3>
+              </div>
+              <div class="mfa-method-body">
+                <p class="mfa-description">
+                  Generate one-time-use backup codes for account recovery. Use these codes when you can't access your SMS or Email MFA methods.
+                </p>
+                <div class="backup-codes-info">
+                  <p><strong>When to use:</strong> If you lose access to your phone (SMS) or email, use a backup code during login.</p>
+                  <p><strong>Important:</strong> Each code can only be used once. Save them in a secure place like a password manager.</p>
+                </div>
+                <button class="btn btn-outline" (click)="generateBackupCodes()">
+                  <i class="fas fa-key"></i> Generate Backup Codes
+                </button>
+                <div *ngIf="currentUserMfaSettings?.enabledMethods?.includes('BACKUPCODE')" class="mfa-enabled">
+                  <i class="fas fa-check-circle text-success"></i> Backup Codes are enabled
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="!isLoadingMfa && !currentUserMfaSettings" class="empty-state">
+            <i class="fas fa-shield-alt"></i>
+            <h3>No MFA settings found</h3>
+            <p>Unable to load your MFA settings.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Backup Codes Modal -->
+<div *ngIf="showBackupCodesModal" class="modal-overlay" (click)="closeBackupCodesModal()">
+  <div class="modal-content backup-codes-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2><i class="fas fa-key"></i> Your Backup Codes</h2>
+      <button class="modal-close" (click)="closeBackupCodesModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="backup-codes-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        <p><strong>Important:</strong> Save these codes in a secure place. Each code can only be used once. If you lose these codes, you'll need to generate new ones.</p>
+      </div>
+      
+      <div class="backup-codes-list">
+        <div class="backup-code-item" *ngFor="let code of backupCodes; let i = index">
+          <span class="code-number">{{ i + 1 }}.</span>
+          <code class="backup-code">{{ code }}</code>
+          <button class="btn-icon" (click)="copySingleCode(code)" title="Copy this code">
+            <i class="fas fa-copy"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="backup-codes-usage-info">
+        <h4><i class="fas fa-info-circle"></i> How to use these codes:</h4>
+        <ol>
+          <li>During login, after entering your password, you'll be asked for an MFA code</li>
+          <li>If you can't access SMS or Email, select "Backup Code" as the verification method</li>
+          <li>Enter one of these codes to complete login</li>
+          <li>Each code can only be used once - it will be removed after use</li>
+        </ol>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" (click)="copyBackupCodes()">
+        <i class="fas fa-copy"></i> {{ backupCodesCopied ? 'Copied!' : 'Copy All Codes' }}
+      </button>
+      <button class="btn btn-outline" (click)="downloadBackupCodes()">
+        <i class="fas fa-download"></i> Download as Text File
+      </button>
+      <button class="btn btn-primary" (click)="closeBackupCodesModal()">
+        I've Saved These Codes
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,2205 @@
+<div class="roles-page" (click)="onMainPageClick($event)">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-surface">
+      <app-breadcrumb></app-breadcrumb>
+
+      <div class="header-main">
+        <div class="title-block">
+          <div class="title-content">
+            <h1 class="page-title">Role Management</h1>
+            <p class="page-description">Manage system roles, permissions, and access controls</p>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <div class="header-stats">
+            <div class="stat-card">
+              <div class="stat-icon">
+                <i class="fas fa-user-shield"></i>
+              </div>
+              <div class="stat-content">
+                <span class="stat-value">{{ statistics.total }}</span>
+                <span class="stat-label">Total</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon stat-icon-success">
+                <i class="fas fa-check-circle"></i>
+              </div>
+              <div class="stat-content">
+                <span class="stat-value">{{ statistics.active }}</span>
+                <span class="stat-label">Active</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon stat-icon-warning">
+                <i class="fas fa-times-circle"></i>
+              </div>
+              <div class="stat-content">
+                <span class="stat-value">{{ statistics.inactive }}</span>
+                <span class="stat-label">Inactive</span>
+              </div>
+            </div>
+          </div>
+          <button *hasPermission="'Roles.Create'" class="btn btn-primary" type="button" (click)="openRoleModal()">
+            <i class="fas fa-plus"></i>
+            <span>Add New Role</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Search and Filter Bar -->
+  <div class="search-filter-section" (click)="onMainPageClick($event)">
+    <div class="search-filter-content">
+      <div class="search-section">
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input type="text" [(ngModel)]="searchTerm" (input)="onSearch()" (focus)="onFormFieldFocus()"
+            placeholder="Search by role name, description..." class="search-input">
+          <span class="search-count" *ngIf="searchTerm">{{ totalCount }} results</span>
+        </div>
+      </div>
+
+      <div class="filter-actions">
+        <button class="btn btn-outline" type="button" (click)="loadRoles()" [disabled]="loading"
+          title="Refresh data">
+          <i class="fas" [class.fa-sync-alt]="!loading" [class.fa-spinner]="loading"
+            [class.fa-spin]="loading"></i>
+        </button>
+
+        <button class="btn btn-filter" [class.btn-filter-active]="showFilters" (click)="toggleFilters()" title="Filters">
+          <i class="fas fa-filter"></i>
+          <span class="filter-badge" *ngIf="getActiveFilterCount() > 0">{{ getActiveFilterCount() }}</span>
+        </button>
+
+        <button *hasPermission="'Roles.Import'" class="btn btn-outline" type="button" (click)="openImportDialog()" title="Import">
+          <i class="fas fa-file-import"></i>
+        </button>
+
+        <div class="dropdown" *hasPermission="'Roles.Export'">
+          <button class="btn btn-outline dropdown-toggle" type="button" (click)="toggleExportDropdown()" title="Export">
+            <i class="fas fa-download"></i>
+            <span class="filter-badge" *ngIf="selectedItems.size > 0" >{{ selectedItems.size }}</span>
+          </button>
+          <div class="dropdown-menu" *ngIf="exportDropdownOpen">
+            <a class="dropdown-item" (click)="exportRoles('excel'); exportDropdownOpen = false">
+              <i class="fas fa-file-excel text-success"></i> Export as Excel
+            </a>
+            <a class="dropdown-item" (click)="exportRoles('csv'); exportDropdownOpen = false">
+              <i class="fas fa-file-csv text-info"></i> Export as CSV
+            </a>
+            <a class="dropdown-item" (click)="exportRoles('pdf'); exportDropdownOpen = false">
+              <i class="fas fa-file-pdf text-danger"></i> Export as PDF
+            </a>
+            <a class="dropdown-item" (click)="exportRoles('json'); exportDropdownOpen = false">
+              <i class="fas fa-file-code text-primary"></i> Export as JSON
+            </a>
+          </div>
+        </div>
+        
+        <button class="btn btn-outline" type="button" (click)="openImportHistoryDialog()" title="History">
+          <i class="fas fa-history"></i>
+        </button>
+
+        <button class="btn btn-outline" type="button" (click)="openHierarchyModal()" title="Hierarchy">
+          <i class="fas fa-sitemap"></i>
+        </button>
+
+        <ng-container *hasPermission="'Roles.Create'">
+          <button *ngIf="selectedItems.size > 0" class="btn btn-outline" (click)="cloneSelected()" title="Clone">
+            <i class="fas fa-copy"></i>
+            <span class="filter-badge">{{ selectedItems.size }}</span>
+          </button>
+        </ng-container>
+        <ng-container *hasPermission="'Roles.Delete'">
+          <button *ngIf="selectedItems.size > 0" class="btn btn-outline" (click)="bulkDeleteRoles()" title="Delete">
+            <i class="fas fa-trash"></i>
+            <span class="filter-badge">{{ selectedItems.size }}</span>
+          </button>
+        </ng-container>
+      </div>
+    </div>
+
+    <!-- Filter Panel -->
+    <div class="filter-panel" *ngIf="showFilters">
+      <div class="filter-panel-header">
+        <div class="filter-title-section">
+          <i class="fas fa-sliders-h"></i>
+          <h3>Advanced Filters</h3>
+          <span class="filter-count" *ngIf="getActiveFilterCount() > 0">{{ getActiveFilterCount() }} active</span>
+        </div>
+        <button class="btn btn-sm btn-clear" (click)="clearFilters()" *ngIf="getActiveFilterCount() > 0">
+          <i class="fas fa-undo"></i>
+          <span>Reset Filters</span>
+        </button>
+      </div>
+
+      <div class="filter-grid">
+        <div class="filter-group">
+          <label>Role Type</label>
+          <div class="searchable-dropdown">
+            <div class="dropdown-trigger" (click)="toggleSearchableDropdown('filter-roleType'); $event.stopPropagation()">
+              <span class="dropdown-value">{{ roleTypeFilter || 'All Role Types' }}</span>
+              <i 
+                *ngIf="hasDropdownValue('filter-roleType')"
+                class="fas fa-times clear-icon"
+                (click)="clearDropdownValue('filter-roleType', $event)"
+                title="Clear selection"
+              ></i>
+              <i class="dropdown-icon"></i>
+            </div>
+
+            <div class="dropdown-menu" *ngIf="dropdownStates['filter-roleType']?.isOpen">
+              <div class="dropdown-options">
+                <div class="dropdown-option" [class.selected]="!roleTypeFilter"
+                  (click)="selectFilterOption('roleType', '')">
+                  All Role Types
+                  <i *ngIf="!roleTypeFilter" class="fas fa-check selected-icon"></i>
+                </div>
+                <div *ngFor="let option of roleTypes" class="dropdown-option"
+                  [class.selected]="roleTypeFilter === option"
+                  (click)="selectFilterOption('roleType', option)">
+                  {{ option }}
+                  <i *ngIf="roleTypeFilter === option" class="fas fa-check selected-icon"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <label>Status</label>
+          <div class="searchable-dropdown">
+            <div class="dropdown-trigger" (click)="toggleSearchableDropdown('filter-status'); $event.stopPropagation()">
+              <span class="dropdown-value">
+                {{ isActiveFilter === true ? 'Active' : isActiveFilter === false ? 'Inactive' : 'All Statuses' }}
+              </span>
+              <i 
+                *ngIf="hasDropdownValue('filter-status')"
+                class="fas fa-times clear-icon"
+                (click)="clearDropdownValue('filter-status', $event)"
+                title="Clear selection"
+              ></i>
+              <i class="dropdown-icon"></i>
+            </div>
+
+            <div class="dropdown-menu" *ngIf="dropdownStates['filter-status']?.isOpen">
+              <div class="dropdown-options">
+                <div class="dropdown-option" [class.selected]="isActiveFilter === null"
+                  (click)="selectFilterOption('status', null)">
+                  All Statuses
+                  <i *ngIf="isActiveFilter === null" class="fas fa-check selected-icon"></i>
+                </div>
+                <div class="dropdown-option" [class.selected]="isActiveFilter === true"
+                  (click)="selectFilterOption('status', true)">
+                  Active
+                  <i *ngIf="isActiveFilter === true" class="fas fa-check selected-icon"></i>
+                </div>
+                <div class="dropdown-option" [class.selected]="isActiveFilter === false"
+                  (click)="selectFilterOption('status', false)">
+                  Inactive
+                  <i *ngIf="isActiveFilter === false" class="fas fa-check selected-icon"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-group" *ngIf="isSystemAdmin">
+          <label>Company</label>
+          <div class="searchable-dropdown">
+            <div class="dropdown-trigger"
+              (click)="toggleSearchableDropdown('filter-organizationId'); $event.stopPropagation()">
+              <span class="dropdown-value">{{ getFilterDisplayValue('organizationId') || 'All Companies' }}</span>
+              <i 
+                *ngIf="hasDropdownValue('filter-organizationId')"
+                class="fas fa-times clear-icon"
+                (click)="clearDropdownValue('filter-organizationId', $event)"
+                title="Clear selection"
+              ></i>
+              <i class="dropdown-icon"></i>
+            </div>
+
+            <div class="dropdown-menu" *ngIf="dropdownStates['filter-organizationId']?.isOpen">
+              <div class="search-input-container">
+                <input type="text" class="search-input" placeholder="Search companies..."
+                  [value]="dropdownStates['filter-organizationId'].searchTerm"
+                  (input)="onSearchInput('filter-organizationId', $event)">
+                <i class="search-icon"></i>
+              </div>
+
+              <div class="dropdown-options">
+                <div class="dropdown-option" [class.selected]="!filterFormData.organizationId"
+                  (click)="selectFilterOption('organizationId', '')">
+                  All Companies
+                  <i *ngIf="!filterFormData.organizationId" class="fas fa-check selected-icon"></i>
+                </div>
+                <div *ngFor="let org of dropdownStates['filter-organizationId']?.filteredOptions" class="dropdown-option"
+                  [class.selected]="filterFormData.organizationId === org.id"
+                  (click)="selectFilterOption('organizationId', org.id)">
+                  {{ org.name }}
+                  <i *ngIf="filterFormData.organizationId === org.id" class="fas fa-check selected-icon"></i>
+                </div>
+                <div *ngIf="dropdownStates['filter-organizationId']?.filteredOptions?.length === 0" class="no-results">
+                  No companies found
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <label>Created From</label>
+          <input type="date" class="form-control" [(ngModel)]="createdFromFilter" name="createdFrom"
+            (change)="onDateFilterChange()">
+        </div>
+
+        <div class="filter-group">
+          <label>Created To</label>
+          <input type="date" class="form-control" [(ngModel)]="createdToFilter" name="createdTo"
+            (change)="onDateFilterChange()">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Display -->
+  <div class="data-display" (click)="onMainPageClick($event)">
+    <!-- Desktop Table View -->
+    <div class="table-container" *ngIf="!isMobile">
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="checkbox-column">
+                <input type="checkbox" [checked]="isAllSelected()" (change)="masterToggle()" class="form-check-input">
+              </th>
+              <th class="sortable" (click)="onSort('name')">
+                Role Info
+                <i class="fas fa-sort" *ngIf="sortField !== 'name'"></i>
+                <i class="fas fa-sort-up" *ngIf="sortField === 'name' && sortDirection === 'asc'"></i>
+                <i class="fas fa-sort-down" *ngIf="sortField === 'name' && sortDirection === 'desc'"></i>
+              </th>
+              <th class="sortable" (click)="onSort('type')">
+                Type
+                <i class="fas fa-sort" *ngIf="sortField !== 'type'"></i>
+                <i class="fas fa-sort-up" *ngIf="sortField === 'type' && sortDirection === 'asc'"></i>
+                <i class="fas fa-sort-down" *ngIf="sortField === 'type' && sortDirection === 'desc'"></i>
+              </th>
+              <th class="sortable" (click)="onSort('status')">
+                Status
+                <i class="fas fa-sort" *ngIf="sortField !== 'status'"></i>
+                <i class="fas fa-sort-up" *ngIf="sortField === 'status' && sortDirection === 'asc'"></i>
+                <i class="fas fa-sort-down" *ngIf="sortField === 'status' && sortDirection === 'desc'"></i>
+              </th>
+              <th>Permissions</th>
+              <th>Users</th>
+              <th class="sortable" *ngIf="isSystemAdmin" (click)="onSort('organizationName')">
+                Company
+                <i class="fas fa-sort" *ngIf="sortField !== 'organizationName'"></i>
+                <i class="fas fa-sort-up" *ngIf="sortField === 'organizationName' && sortDirection === 'asc'"></i>
+                <i class="fas fa-sort-down" *ngIf="sortField === 'organizationName' && sortDirection === 'desc'"></i>
+              </th>
+              <th class="sortable" (click)="onSort('createdAtUtc')">
+                Created Date
+                <i class="fas fa-sort" *ngIf="sortField !== 'createdAtUtc'"></i>
+                <i class="fas fa-sort-up" *ngIf="sortField === 'createdAtUtc' && sortDirection === 'asc'"></i>
+                <i class="fas fa-sort-down" *ngIf="sortField === 'createdAtUtc' && sortDirection === 'desc'"></i>
+              </th>
+              <th class="actions-column">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="loading" class="loading-row">
+              <td [attr.colspan]="isSystemAdmin ? '9' : '8'" class="loading-cell">
+                <div class="loading-spinner">
+                  <i class="fas fa-spinner fa-spin"></i>
+                  <span>Loading roles...</span>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="!loading && items.length === 0" class="empty-row">
+              <td [attr.colspan]="isSystemAdmin ? '9' : '8'" class="empty-cell">
+                <div class="empty-state">
+                  <i class="fas fa-user-shield"></i>
+                  <h3>No roles found</h3>
+                  <p>Create your first role to get started</p>
+                </div>
+              </td>
+            </tr>
+            <tr *ngFor="let role of items" class="data-row" [hidden]="loading">
+              <td class="checkbox-column">
+                <input type="checkbox" [checked]="selectedItems.has(role.id)" (change)="toggleItemSelection(role.id)"
+                  class="form-check-input">
+              </td>
+              <td class="item-email">
+                <div class="role-info">
+                  <div class="role-icon" [style.color]="getRoleColor(role.color)">
+                    <i [class]="getRoleIcon(role.icon)"></i>
+                  </div>
+                  <div class="role-details">
+                    <div class="role-name">{{ role.name }}</div>
+                    <div class="role-description" *ngIf="role.description" [title]="role.description">{{ role.description }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="role-type">
+                <span class="role-type-badge" [ngClass]="getRoleTypeClass(role.roleType)">
+                  {{ role.roleType }}
+                </span>
+              </td>
+              <td class="status">
+                <div class="status-container">
+                  <div class="status-indicator" [class]="getStatusClass(role.isActive)">
+                    <i class="fas" [class]="getStatusIcon(role.isActive)"></i>
+                  </div>
+                  <span class="status-text" [class]="getStatusClass(role.isActive)">
+                    {{ role.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                </div>
+              </td>
+              <td class="permissions">
+                <span class="permission-count">{{ role.permissionCount }}</span>
+              </td>
+              <td class="users">
+                <span class="user-count">{{ role.userCount }}</span>
+              </td>
+              <td class="organization" *ngIf="isSystemAdmin">
+                <div class="organization-badge">
+                  <span>{{ role.organizationName || '-' }}</span>
+                </div>
+              </td>
+              <td class="created-date">{{ formatDate(role.createdAtUtc) }}</td>
+              <td class="actions">
+                <div class="action-buttons">
+                  <button class="action-btn action-btn-view" (click)="openViewDialog(role)" title="View">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  <button class="action-btn action-btn-edit" 
+                    [class.disabled]="!canEditItem(role)"
+                    [disabled]="!canEditItem(role)"
+                    (click)="openRoleModal(role)" 
+                    [title]="canEditItem(role) ? 'Edit' : 'You can only edit roles from your own organization'">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <div class="action-dropdown" [class.active]="role.showDropdown">
+                    <button class="action-btn action-btn-more dropdown-toggle" (click)="toggleDropdown(role, $event)"
+                      title="More Actions">
+                      <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                    <div class="dropdown-menu" *ngIf="role.showDropdown" (click)="$event.stopPropagation()">
+                      <button class="dropdown-item" (click)="openPermissionModal(role); role.showDropdown = false">
+                        <i class="fas fa-key"></i>
+                        <span>Manage Permissions</span>
+                      </button>
+                      <button class="dropdown-item" (click)="openUserModal(role); role.showDropdown = false">
+                        <i class="fas fa-users"></i>
+                        <span>Manage Users</span>
+                      </button>
+                      <button class="dropdown-item toggle-action" (click)="toggleRoleStatus(role); role.showDropdown = false">
+                        <i class="fas" [class.fa-power-off]="role.isActive" [class.fa-check-circle]="!role.isActive"></i>
+                        <span>{{ role.isActive ? 'Deactivate' : 'Activate' }}</span>
+                      </button>
+                      <button *hasPermission="'Roles.Create'" class="dropdown-item" (click)="cloneRole(role); role.showDropdown = false">
+                        <i class="fas fa-copy"></i>
+                        <span>Clone</span>
+                      </button>
+                      <button class="dropdown-item delete"
+                        [class.disabled]="!canDeleteItem(role)"
+                        [disabled]="!canDeleteItem(role)"
+                        (click)="deleteRole(role); role.showDropdown = false"
+                        [title]="canDeleteItem(role) ? 'Delete' : 'You can only delete roles from your own organization'">
+                        <i class="fas fa-trash-alt"></i>
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Mobile Card View -->
+    <div class="mobile-cards" *ngIf="isMobile">
+      <div *ngIf="loading" class="loading-spinner">
+        <i class="fas fa-spinner fa-spin"></i>
+        <span>Loading roles...</span>
+      </div>
+
+      <div *ngIf="!loading && roles.length === 0" class="empty-state">
+        <i class="fas fa-user-shield"></i>
+        <h3>No roles found</h3>
+        <p>Create your first role to get started</p>
+      </div>
+
+      <div *ngFor="let role of items" class="mobile-card" [hidden]="loading">
+        <div class="mobile-card-header">
+          <div class="mobile-card-checkbox">
+            <input type="checkbox" [checked]="selectedItems.has(role.id)" (change)="toggleItemSelection(role.id)"
+              class="form-check-input">
+          </div>
+          <div class="mobile-card-title">
+            <div class="role-info">
+              <div class="role-icon" [style.color]="getRoleColor(role.color)">
+                <i [class]="getRoleIcon(role.icon)"></i>
+              </div>
+              <div class="role-details">
+                <h3>{{ role.name }}</h3>
+                <p class="role-description" *ngIf="role.description" [title]="role.description">{{ role.description }}</p>
+              </div>
+            </div>
+          </div>
+          <div class="mobile-card-status">
+            <div class="status-container">
+              <div class="status-indicator" [class]="getStatusClass(role.isActive)">
+                <i class="fas" [class]="getStatusIcon(role.isActive)"></i>
+              </div>
+              <span class="status-text" [class]="getStatusClass(role.isActive)">
+                {{ role.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mobile-card-body">
+          <div class="mobile-card-grid">
+            <div class="mobile-card-field">
+              <span class="field-label">Type:</span>
+              <span class="role-type-badge" [ngClass]="getRoleTypeClass(role.roleType)">
+                {{ role.roleType }}
+              </span>
+            </div>
+            <div class="mobile-card-field">
+              <span class="field-label">Permissions:</span>
+              <span class="field-value">{{ role.permissionCount }}</span>
+            </div>
+            <div class="mobile-card-field">
+              <span class="field-label">Users:</span>
+              <span class="field-value">{{ role.userCount }}</span>
+            </div>
+            <div class="mobile-card-field">
+              <span class="field-label">Created:</span>
+              <span class="field-value">{{ formatDate(role.createdAtUtc) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mobile-card-actions">
+          <div class="quick-actions">
+            <button class="icon-btn action-view" (click)="openViewDialog(role)" title="View Details"
+              aria-label="View Details">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button class="icon-btn action-edit" (click)="openRoleModal(role)" title="Edit" aria-label="Edit">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="icon-btn action-permissions" (click)="openPermissionModal(role)" title="Manage Permissions" aria-label="Manage Permissions">
+              <i class="fas fa-key"></i>
+            </button>
+            <button class="icon-btn action-users" (click)="openUserModal(role)" title="Manage Users" aria-label="Manage Users">
+              <i class="fas fa-users"></i>
+            </button>
+            <button class="icon-btn action-toggle" (click)="toggleRoleStatus(role)" title="Toggle Status"
+              aria-label="Toggle Status" [class.inactive]="!role.isActive">
+              <i class="fas" [class.fa-toggle-on]="!role.isActive" [class.fa-toggle-off]="role.isActive"></i>
+            </button>
+            <button class="icon-btn action-delete" (click)="deleteRole(role)" title="Delete"
+              aria-label="Delete">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination-section" *ngIf="getTotalPages() > 1" (click)="onMainPageClick($event)">
+    <div class="pagination-content">
+      <div class="pagination-info">
+        <span class="items-per-page">
+          <label>Rows per page:</label>
+          <select class="form-select" [(ngModel)]="pageSize" (ngModelChange)="onPageSizeChange($event)">
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </span>
+        <span class="pagination-text">
+          Showing {{ (currentPage - 1) * pageSize + 1 }} to
+          {{ Math.min(currentPage * pageSize, totalCount) }} of
+          {{ totalCount }} entries
+        </span>
+      </div>
+
+      <div class="pagination-controls">
+        <button class="btn btn-outline btn-sm" [disabled]="currentPage === 1" (click)="onPageChange(1)">
+          <i class="fas fa-angle-double-left"></i>
+        </button>
+        <button class="btn btn-outline btn-sm" [disabled]="currentPage === 1" (click)="onPageChange(currentPage - 1)">
+          <i class="fas fa-angle-left"></i>
+        </button>
+
+        <span class="page-info">
+          Page {{ currentPage }} of {{ getTotalPages() }}
+        </span>
+
+        <button class="btn btn-outline btn-sm" [disabled]="currentPage === getTotalPages()"
+          (click)="onPageChange(currentPage + 1)">
+          <i class="fas fa-angle-right"></i>
+        </button>
+        <button class="btn btn-outline btn-sm" [disabled]="currentPage === getTotalPages()"
+          (click)="onPageChange(getTotalPages())">
+          <i class="fas fa-angle-double-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Dialog -->
+  <div class="modal-overlay" *ngIf="showRoleModal">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="header-content">
+          <div class="header-icon">
+            <i class="fas" [class.fa-plus]="!selectedRole" [class.fa-edit]="selectedRole"></i>
+          </div>
+          <div class="header-text">
+            <h2>{{ selectedRole ? 'Edit Role' : 'Add New Role' }}</h2>
+            <p class="modal-subtitle">{{ selectedRole ? 'Modify existing role details' : 'Create a new role' }}</p>
+          </div>
+        </div>
+        <button class="btn-close" (click)="closeModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body" (click)="onModalBodyClick($event)">
+        <form [formGroup]="roleForm" (ngSubmit)="saveRole()" class="modern-form">
+          <div class="form-sections">
+            <div class="form-section">
+              <div class="section-title-container basic-info">
+                <div class="section-icon-wrapper">
+                  <i class="fas fa-user-shield"></i>
+                </div>
+                <div class="section-title-content">
+                  <h3 class="section-title">Role Information</h3>
+                </div>
+                <div class="section-decoration"></div>
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="name" class="form-label">
+                    Role Name <span class="required">*</span>
+                  </label>
+                  <div class="input-wrapper">
+                    <input id="name" type="text" formControlName="name"
+                      [class.form-control]="!roleForm.get('name')?.invalid"
+                      [class.form-control-error]="roleForm.get('name')?.invalid"
+                      placeholder="Enter role name" required>
+                    <div class="input-status" *ngIf="roleForm.get('name')?.value && !roleForm.get('name')?.invalid">
+                      <i class="fas fa-check-circle status-valid"></i>
+                    </div>
+                  </div>
+                  <div class="error-message" *ngIf="roleForm.get('name')?.invalid && roleForm.get('name')?.touched">
+                    <span class="error-icon"></span>
+                    Role name is required
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="description" class="form-label">Description</label>
+                  <textarea id="description" formControlName="description" class="form-control"
+                    placeholder="Enter role description" rows="3"></textarea>
+                </div>
+
+                <div class="form-group">
+                  <label for="roleType" class="form-label">Role Type <span class="required">*</span></label>
+                  <select id="roleType" formControlName="roleType" class="form-control" required>
+                    <option value="CUSTOM">Custom</option>
+                    <option value="SYSTEM">System</option>
+                    <option value="INHERITED">Inherited</option>
+                  </select>
+                    </div>
+
+                <div class="form-group">
+                  <label for="parentRoleId" class="form-label">Parent Role</label>
+                  <select id="parentRoleId" formControlName="parentRoleId" class="form-control">
+                    <option value="">None</option>
+                    <option *ngFor="let role of items" [value]="role.id">{{ role.name }}</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="sortOrder" class="form-label">Sort Order</label>
+                  <input id="sortOrder" type="number" formControlName="sortOrder" class="form-control"
+                    placeholder="Enter sort order" min="0">
+                </div>
+
+                <div class="form-group">
+                  <label for="color" class="form-label">Color</label>
+                  <div class="color-picker">
+                    <input id="color" type="color" formControlName="color" class="form-control color-input">
+                    <div class="color-options">
+                      <div *ngFor="let color of roleColors" class="color-option"
+                        [style.background-color]="color"
+                        [class.selected]="roleForm.get('color')?.value === color"
+                        (click)="roleForm.patchValue({color: color})">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="icon" class="form-label">Icon</label>
+                  <div class="icon-picker">
+                    <select id="icon" formControlName="icon" class="form-control">
+                      <option *ngFor="let icon of roleIcons" [value]="icon">{{ icon }}</option>
+                    </select>
+                    <div class="icon-preview">
+                      <i [class]="roleForm.get('icon')?.value"></i>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="isActive" class="form-label">Active Status</label>
+                  <div class="simple-status-toggle">
+                    <label class="toggle-switch">
+                      <input id="isActive" type="checkbox" formControlName="isActive">
+                      <span class="toggle-slider"></span>
+                    </label>
+                    <span class="status-text" [class]="roleForm.get('isActive')?.value ? 'active' : 'inactive'">
+                      {{ roleForm.get('isActive')?.value ? 'Active' : 'Inactive' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-outline" (click)="closeModal()">
+              <i class="fas fa-times"></i>
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="saving || roleForm.invalid">
+              <i class="fas" [class.fa-plus]="!selectedRole && !saving"
+                [class.fa-save]="selectedRole && !saving" [class.fa-spinner]="saving"
+                [class.fa-spin]="saving"></i>
+              {{ saving ? 'Saving...' : (selectedRole ? 'Save Changes' : 'Create Role') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Dialog -->
+  <div class="modal-overlay" *ngIf="showViewDialog">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="header-content">
+          <div class="header-icon">
+            <i class="fas fa-user-shield"></i>
+          </div>
+          <div class="header-text">
+            <h2>Role Details</h2>
+            <p class="modal-subtitle" *ngIf="selectedRole">{{ selectedRole.name }}</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-outline btn-sm" (click)="exportRoleDetailsAsPDF()" title="Export as PDF">
+            <i class="fas fa-file-pdf"></i>
+            Export PDF
+          </button>
+          <button class="btn-close" (click)="closeModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <div class="profile-form" *ngIf="selectedRole">
+          <!-- Role Profile Card -->
+          <div class="entity-card">
+            <div class="entity-info">
+              <div class="entity-avatar" [style.color]="getRoleColor(selectedRole.color)">
+                <i [class]="getRoleIcon(selectedRole.icon)"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Basic Information Card -->
+          <div class="info-card">
+            <div class="card-header">
+              <div class="card-header-content">
+                <div class="card-icon personal">
+                  <i class="fas fa-info-circle"></i>
+                </div>
+                <div>
+                  <h2 class="card-title">Role Information</h2>
+                  <p class="card-subtitle">Role name, description, and type details</p>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-field">
+                  <label class="field-label">Name</label>
+                  <div class="field-value">{{ selectedRole.name }}</div>
+                </div>
+                <div class="form-field">
+                  <label class="field-label">Type</label>
+                  <div class="field-value">
+                    <span class="role-type-badge" [ngClass]="getRoleTypeClass(selectedRole.roleType)">
+                      {{ selectedRole.roleType }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-field full-width">
+                  <label class="field-label">Description</label>
+                  <div class="field-value">{{ selectedRole.description || '-' }}</div>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-field">
+                  <label class="field-label">Sort Order</label>
+                  <div class="field-value">{{ selectedRole.sortOrder || '-' }}</div>
+                </div>
+                <div class="form-field">
+                  <label class="field-label">Status</label>
+                  <div class="field-value">
+                    <span class="status-badge" [class]="getStatusClass(selectedRole.isActive)">
+                      {{ selectedRole.isActive ? 'Active' : 'Inactive' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Permissions & Users Card -->
+          <div class="info-card">
+            <div class="card-header">
+              <div class="card-header-content">
+                <div class="card-icon work">
+                  <i class="fas fa-key"></i>
+                </div>
+                <div>
+                  <h2 class="card-title">Permissions & Users</h2>
+                  <p class="card-subtitle">Assigned permissions and user count</p>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-field">
+                  <label class="field-label">Total Permissions</label>
+                  <div class="field-value">{{ selectedRole.permissionCount }}</div>
+                </div>
+                <div class="form-field">
+                  <label class="field-label">Total Users</label>
+                  <div class="field-value">{{ selectedRole.userCount }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dates & Metadata Section -->
+          <div class="info-card">
+            <div class="card-header">
+              <div class="card-header-content">
+                <div class="card-icon work">
+                  <i class="fas fa-calendar"></i>
+                </div>
+                <div>
+                  <h2 class="card-title">Dates & Metadata</h2>
+                  <p class="card-subtitle">Creation, modification, and tracking information</p>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-field">
+                  <label class="field-label">Created Date</label>
+                  <div class="field-value">{{ formatDateTime(selectedRole.createdAtUtc) }}</div>
+                </div>
+                <div class="form-field">
+                  <label class="field-label">Created By</label>
+                  <div class="field-value">{{ selectedRole.createdBy || '-' }}</div>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-field">
+                  <label class="field-label">Modified Date</label>
+                  <div class="field-value">{{ selectedRole.updatedAtUtc ? formatDateTime(selectedRole.updatedAtUtc) : '-' }}</div>
+                </div>
+                <div class="form-field">
+                  <label class="field-label">Modified By</label>
+                  <div class="field-value">{{ selectedRole.updatedBy || '-' }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-outline" (click)="closeModal()">
+            Close
+          </button>
+          <button class="btn btn-primary" (click)="openRoleModal(selectedRole!); showViewDialog = false">
+            <i class="fas fa-edit"></i>
+            Edit Role
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Dialog -->
+  <div class="modal-overlay" *ngIf="showDeleteDialog">
+    <div class="modal modal-sm modal-danger">
+      <div class="modal-header">
+        <div class="header-content">
+          <div class="header-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          <div class="header-text">
+            <h2>Delete Role</h2>
+            <p class="modal-subtitle">This action cannot be undone</p>
+          </div>
+        </div>
+        <button class="btn-close" (click)="closeModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="warning-content">
+          <div class="warning-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+
+          <div class="warning-text">
+            <p>
+              This action cannot be undone. This will permanently delete
+              <span class="item-count">
+                {{ deleteItemCount }} {{ deleteItemCount === 1 ? 'role' : 'roles' }}
+              </span>
+              from the system.
+            </p>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-outline" (click)="closeModal()">
+            <i class="fas fa-times"></i>
+            Cancel
+          </button>
+          <button class="btn btn-danger" (click)="confirmDelete()">
+            <i class="fas fa-trash"></i>
+            Delete {{ deleteItemCount === 1 ? 'Role' : 'Roles' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import Dialog -->
+  <div class="modal-overlay" *ngIf="showImportDialog">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="header-content">
+          <div class="header-icon">
+            <i class="fas fa-file-import"></i>
+          </div>
+          <div class="header-text">
+            <h2>Import Roles</h2>
+            <p class="modal-subtitle">Upload CSV or Excel file to import roles</p>
+          </div>
+        </div>
+        <button class="btn-close" (click)="closeImportDialog()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="import-container">
+          <!-- Step 1: Download Template -->
+          <div class="import-section">
+            <div class="section-header">
+              <i class="fas fa-download"></i>
+              <h3>Step 1: Download Template</h3>
+            </div>
+            <p class="section-description">Download the Excel template with all required columns. Fill in your data
+              following the sample format.</p>
+            <button class="btn btn-outline" type="button" (click)="downloadTemplate()">
+              <i class="fas fa-file-download"></i>
+              <span>Download Template</span>
+            </button>
+          </div>
+
+          <!-- Step 2: Upload File -->
+          <div class="import-section">
+            <div class="section-header">
+              <i class="fas fa-upload"></i>
+              <h3>Step 2: Upload File</h3>
+            </div>
+            <p class="section-description">Select a CSV or Excel file. Maximum size: 5MB</p>
+
+            <div class="file-upload-area" [class.has-file]="selectedFile" (dragover)="onDragOver($event)"
+              (dragenter)="onDragEnter($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)">
+              <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" (change)="onFileSelected($event)"
+                style="display: none;">
+
+              <div *ngIf="!selectedFile" class="upload-placeholder" (click)="triggerFileInput()">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Click to browse or drag and drop</p>
+                <span>Supported: CSV, Excel (.xlsx, .xls)</span>
+              </div>
+
+              <div *ngIf="selectedFile" class="file-selected">
+                <div class="file-info">
+                  <i class="fas fa-file-excel"></i>
+                  <div class="file-details">
+                    <span class="file-name">{{ selectedFile.name }}</span>
+                    <span class="file-size">{{ (selectedFile.size / 1024).toFixed(2) }} KB</span>
+                  </div>
+                </div>
+                <div class="file-actions">
+                  <button class="btn-browse" type="button" (click)="triggerFileInput()" title="Browse for another file">
+                    <i class="fas fa-folder-open"></i>
+                  </button>
+                  <button class="btn-remove" type="button" (click)="removeSelectedFile()" title="Remove file">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Import Errors -->
+          <div class="import-section" *ngIf="importErrors.length > 0">
+            <div class="section-header">
+              <i class="fas fa-exclamation-triangle"></i>
+              <h3>Import Errors ({{ importErrors.length }})</h3>
+            </div>
+            <p class="section-description">The following errors occurred during import. Please fix these issues and try
+              again.</p>
+
+            <div class="import-errors">
+              <div class="error-header">
+                <button *ngIf="errorReportId" class="btn-download-error-report" (click)="downloadErrorReport()"
+                  type="button">
+                  <i class="fas fa-download"></i>
+                  Download Detailed Report
+                </button>
+              </div>
+              <div class="error-list">
+                <div class="error-item" *ngFor="let error of importErrors">
+                  <i class="fas fa-times-circle"></i>
+                  <span>{{ error }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Import Instructions -->
+          <div class="import-section">
+            <div class="section-header">
+              <i class="fas fa-info-circle"></i>
+              <h3>Import Instructions</h3>
+            </div>
+            <p class="section-description">Follow these guidelines to ensure successful import of your role data.</p>
+
+            <div class="import-instructions">
+              <ul>
+                <li><strong>Required Headers:</strong> Name, Description, Role Type, Status, Sort Order, Color, Icon</li>
+                <li><strong>Required Fields:</strong> Name and Role Type are mandatory</li>
+                <li><strong>Role Type:</strong> Must be "CUSTOM", "SYSTEM", or "INHERITED"</li>
+                <li><strong>Status:</strong> Must be "Active" or "Inactive" (case-insensitive)</li>
+                <li><strong>Duplicates:</strong> Rows with existing role names will be automatically skipped</li>
+                <li><strong>Template:</strong> Download the template above to see the correct format and sample data
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-outline" type="button" (click)="closeImportDialog()" [disabled]="isImporting">
+            <i class="fas fa-times"></i>
+            Cancel
+          </button>
+          <button class="btn btn-primary" type="button" (click)="importData()"
+            [disabled]="!selectedFile || isImporting">
+            <i class="fas" [class.fa-file-import]="!isImporting" [class.fa-spinner]="isImporting"
+              [class.fa-spin]="isImporting"></i>
+            {{ isImporting ? 'Importing...' : 'Import Data' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import History Dialog -->
+  <div class="modal-overlay" *ngIf="showImportHistoryDialog">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="header-content">
+          <div class="header-icon">
+            <i class="fas fa-history"></i>
+          </div>
+          <div class="header-text">
+            <h2>Import/Export History</h2>
+            <p class="modal-subtitle">View all role import and export operations</p>
+          </div>
+        </div>
+        <button class="btn-close" (click)="closeImportHistoryDialog()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="import-history-container">
+          <!-- History Type Filters -->
+          <div class="history-filters">
+            <button
+              class="filter-btn"
+              [class.active]="historyType === undefined"
+              (click)="filterHistory('all')">
+              All
+            </button>
+            <button
+              class="filter-btn"
+              [class.active]="historyType === 'import'"
+              (click)="filterHistory('import')">
+              <i class="fas fa-upload"></i> Import
+            </button>
+            <button
+              class="filter-btn"
+              [class.active]="historyType === 'export'"
+              (click)="filterHistory('export')">
+              <i class="fas fa-download"></i> Export
+            </button>
+          </div>
+
+          <!-- Loading State -->
+          <div *ngIf="isLoadingHistory" class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>Loading history...</span>
+          </div>
+
+          <!-- Empty State -->
+          <div *ngIf="!isLoadingHistory && history.length === 0" class="empty-state">
+            <i class="fas fa-history"></i>
+            <h3>No history found</h3>
+            <p>History will appear here after you import or export roles</p>
+          </div>
+
+          <!-- History Table (Desktop) -->
+          <div *ngIf="!isLoadingHistory && history.length > 0 && !isMobile" class="history-table-wrapper">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>File Name</th>
+                  <th>Format</th>
+                  <th>Date</th>
+                  <th>Progress</th>
+                  <th>Status</th>
+                  <th class="text-center">Total Rows</th>
+                  <th class="text-center">Success</th>
+                  <th class="text-center">Updated</th>
+                  <th class="text-center">Skipped</th>
+                  <th class="text-center">Errors</th>
+                  <th>Strategy</th>
+                  <th>File Size</th>
+                  <th>User</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let h of history">
+                  <!-- Type Column -->
+                  <td>
+                    <span class="operation-badge" [class.import]="h.operationType === 'Import'" [class.export]="h.operationType === 'Export'">
+                      <i class="fas" [class.fa-upload]="h.operationType === 'Import'" [class.fa-download]="h.operationType === 'Export'"></i>
+                      {{ h.operationType }}
+                    </span>
+                  </td>
+
+                  <!-- File Name -->
+                  <td class="file-name">
+                    <i class="fas fa-file-excel"></i>
+                    {{ h.fileName }}
+                  </td>
+
+                  <!-- Format -->
+                  <td>
+                    <span class="format-badge">{{ h.format }}</span>
+                  </td>
+
+                  <!-- Date -->
+                  <td>{{ formatDateTime(h.createdAtUtc) }}</td>
+
+                  <!-- Progress -->
+                  <td class="progress-column">
+                    <div *ngIf="isCurrentJob(h)" class="mini-progress">
+                      <div class="mini-progress-bar">
+                        <div class="mini-progress-fill" [style.width.%]="h.progress"></div>
+                      </div>
+                      <span class="mini-progress-text">{{ h.progress }}%</span>
+                    </div>
+                    <div *ngIf="!isCurrentJob(h) && (h.status === 'Processing' || h.status === 'Pending')" class="mini-progress">
+                      <div class="mini-progress-bar">
+                        <div class="mini-progress-fill" [style.width.%]="h.progress"></div>
+                      </div>
+                      <span class="mini-progress-text">{{ h.progress }}%</span>
+                    </div>
+                    <span *ngIf="!isCurrentJob(h) && h.status !== 'Processing' && h.status !== 'Pending'">{{ h.progress }}%</span>
+                  </td>
+
+                  <!-- Status -->
+                  <td>
+                    <span [ngClass]="getHistoryStatusClass(h.status)">
+                      {{ h.status }}
+                    </span>
+                  </td>
+
+                  <!-- Total Rows -->
+                  <td class="text-center">{{ h.totalRows }}</td>
+
+                  <!-- Success -->
+                  <td class="text-center">
+                    <span class="badge badge-success" *ngIf="h.successCount > 0">
+                      {{ h.successCount }}
+                    </span>
+                    <span *ngIf="h.successCount === 0">-</span>
+                  </td>
+
+                  <!-- Updated -->
+                  <td class="text-center">
+                    <span class="badge badge-info" *ngIf="h.updatedCount > 0">
+                      {{ h.updatedCount }}
+                    </span>
+                    <span *ngIf="h.updatedCount === 0">-</span>
+                  </td>
+
+                  <!-- Skipped -->
+                  <td class="text-center">
+                    <span class="badge badge-warning" *ngIf="h.skippedCount > 0">
+                      {{ h.skippedCount }}
+                    </span>
+                    <span *ngIf="h.skippedCount === 0">-</span>
+                  </td>
+
+                  <!-- Errors -->
+                  <td class="text-center">
+                    <div *ngIf="h.errorCount > 0">
+                      <span class="badge badge-danger">{{ h.errorCount }}</span>
+                    </div>
+                    <span *ngIf="h.errorCount === 0">-</span>
+                  </td>
+
+                  <!-- Strategy -->
+                  <td>
+                    <span class="strategy-badge" *ngIf="h.duplicateHandlingStrategy">
+                      {{ getStrategyDisplayName(h.duplicateHandlingStrategy) }}
+                    </span>
+                    <span *ngIf="!h.duplicateHandlingStrategy">-</span>
+                  </td>
+
+                  <!-- File Size -->
+                  <td>{{ formatFileSize(h.fileSizeBytes) }}</td>
+
+                  <!-- User -->
+                  <td>{{ h.importedBy }}</td>
+
+                  <!-- Actions -->
+                  <td>
+                    <!-- For Imports: Download Error Report -->
+                    <button *ngIf="h.operationType === 'Import' && h.errorReportId"
+                            class="btn-download-error-report btn-sm"
+                            (click)="downloadErrorReportForHistory(h.id)"
+                            title="Download Error Report">
+                      <i class="fas fa-file-csv"></i>
+                    </button>
+
+                    <!-- For Exports: Download File -->
+                    <button *ngIf="h.operationType === 'Export' && h.status === 'Completed'"
+                            class="btn-download-error-report btn-sm"
+                            (click)="downloadExportFromHistory(h.id)"
+                            title="Download Export">
+                      <i class="fas fa-download"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- History Mobile Cards -->
+          <div *ngIf="!isLoadingHistory && history.length > 0 && isMobile" class="mobile-cards">
+            <div *ngFor="let h of history" class="mobile-card">
+              <div class="mobile-card-header">
+                <div class="mobile-card-title">
+                  <span class="operation-badge" [class.import]="h.operationType === 'Import'" [class.export]="h.operationType === 'Export'">
+                    <i class="fas" [class.fa-upload]="h.operationType === 'Import'" [class.fa-download]="h.operationType === 'Export'"></i>
+                    {{ h.operationType }}
+                  </span>
+                  <span [ngClass]="getHistoryStatusClass(h.status)" class="status-badge-mobile">
+                    {{ h.status }}
+                  </span>
+                </div>
+              </div>
+              <div class="mobile-card-body">
+                <div class="mobile-card-grid">
+                  <div class="mobile-card-field">
+                    <span class="field-label">File Name</span>
+                    <span class="field-value">
+                      <i class="fas fa-file-excel"></i>
+                      {{ h.fileName }}
+                    </span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">Format</span>
+                    <span class="field-value">
+                      <span class="format-badge">{{ h.format }}</span>
+                    </span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">Date</span>
+                    <span class="field-value">{{ formatDateTime(h.createdAtUtc) }}</span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">Progress</span>
+                    <span class="field-value">
+                      <div *ngIf="isCurrentJob(h) || (h.status === 'Processing' || h.status === 'Pending')" class="mini-progress">
+                        <div class="mini-progress-bar">
+                          <div class="mini-progress-fill" [style.width.%]="h.progress"></div>
+                        </div>
+                        <span class="mini-progress-text">{{ h.progress }}%</span>
+                      </div>
+                      <span *ngIf="!isCurrentJob(h) && h.status !== 'Processing' && h.status !== 'Pending'">{{ h.progress }}%</span>
+                    </span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">Total Rows</span>
+                    <span class="field-value">{{ h.totalRows }}</span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">Success</span>
+                    <span class="field-value">
+                      <span class="badge badge-success" *ngIf="h.successCount > 0">{{ h.successCount }}</span>
+                      <span *ngIf="h.successCount === 0">-</span>
+                    </span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">Updated</span>
+                    <span class="field-value">
+                      <span class="badge badge-info" *ngIf="h.updatedCount > 0">{{ h.updatedCount }}</span>
+                      <span *ngIf="h.updatedCount === 0">-</span>
+                    </span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">Skipped</span>
+                    <span class="field-value">
+                      <span class="badge badge-warning" *ngIf="h.skippedCount > 0">{{ h.skippedCount }}</span>
+                      <span *ngIf="h.skippedCount === 0">-</span>
+                    </span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">Errors</span>
+                    <span class="field-value">
+                      <span class="badge badge-danger" *ngIf="h.errorCount > 0">{{ h.errorCount }}</span>
+                      <span *ngIf="h.errorCount === 0">-</span>
+                    </span>
+                  </div>
+                  <div class="mobile-card-field" *ngIf="h.duplicateHandlingStrategy">
+                    <span class="field-label">Strategy</span>
+                    <span class="field-value">
+                      <span class="strategy-badge">{{ getStrategyDisplayName(h.duplicateHandlingStrategy) }}</span>
+                    </span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">File Size</span>
+                    <span class="field-value">{{ formatFileSize(h.fileSizeBytes) }}</span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">User</span>
+                    <span class="field-value">{{ h.importedBy }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="mobile-card-actions" *ngIf="(h.operationType === 'Import' && h.errorReportId) || (h.operationType === 'Export' && h.status === 'Completed')">
+                <div class="quick-actions">
+                  <button *ngIf="h.operationType === 'Import' && h.errorReportId"
+                          class="icon-btn action-download"
+                          (click)="downloadErrorReportForHistory(h.id)"
+                          title="Download Error Report">
+                    <i class="fas fa-file-csv"></i>
+                  </button>
+                  <button *ngIf="h.operationType === 'Export' && h.status === 'Completed'"
+                          class="icon-btn action-download"
+                          (click)="downloadExportFromHistory(h.id)"
+                          title="Download Export">
+                    <i class="fas fa-download"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pagination -->
+          <div *ngIf="!isLoadingHistory && historyTotalCount > historyPageSize" class="history-pagination">
+            <div class="pagination-info">
+              <span>
+                Showing {{ (historyPage - 1) * historyPageSize + 1 }} to
+                {{ Math.min(historyPage * historyPageSize, historyTotalCount) }} of
+                {{ historyTotalCount }} entries
+              </span>
+            </div>
+            <div class="pagination-controls">
+              <button class="btn btn-outline btn-sm" [disabled]="historyPage === 1"
+                (click)="goToHistoryPage(1)">
+                <i class="fas fa-angle-double-left"></i>
+              </button>
+              <button class="btn btn-outline btn-sm" [disabled]="historyPage === 1"
+                (click)="goToHistoryPage(historyPage - 1)">
+                <i class="fas fa-angle-left"></i>
+              </button>
+              <span class="page-info">
+                Page {{ historyPage }} of {{ getHistoryTotalPages() }}
+              </span>
+              <button class="btn btn-outline btn-sm" [disabled]="historyPage === getHistoryTotalPages()"
+                (click)="goToHistoryPage(historyPage + 1)">
+                <i class="fas fa-angle-right"></i>
+              </button>
+              <button class="btn btn-outline btn-sm" [disabled]="historyPage === getHistoryTotalPages()"
+                (click)="goToHistoryPage(getHistoryTotalPages())">
+                <i class="fas fa-angle-double-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-outline" (click)="closeImportHistoryDialog()">
+            <i class="fas fa-times"></i>
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export Progress Dialog -->
+  <div class="modal-overlay" *ngIf="showExportDialog">
+    <div class="modal modal-md">
+      <div class="modal-header">
+        <div class="header-content">
+          <div class="header-icon">
+            <i class="fas fa-download"></i>
+          </div>
+          <div class="header-text">
+            <h2>Export Progress</h2>
+            <p class="modal-subtitle">Your export is being processed</p>
+          </div>
+        </div>
+        <button class="btn-close" (click)="closeExportDialog()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="export-progress-container">
+          <!-- Status Icon -->
+          <div class="status-icon" [ngSwitch]="exportStatus">
+            <i *ngSwitchCase="'Pending'" class="fas fa-clock fa-3x text-warning"></i>
+            <i *ngSwitchCase="'Processing'" class="fas fa-spinner fa-spin fa-3x text-primary"></i>
+            <i *ngSwitchCase="'Completed'" class="fas fa-check-circle fa-3x text-success"></i>
+            <i *ngSwitchCase="'Failed'" class="fas fa-times-circle fa-3x text-danger"></i>
+          </div>
+
+          <!-- Status Text -->
+          <h3>{{ exportStatus }}</h3>
+
+          <!-- Progress Bar -->
+          <div class="progress-container" *ngIf="exportStatus === 'Processing' || exportStatus === 'Pending'">
+            <div class="progress-bar">
+              <div class="progress-fill" [style.width.%]="exportProgress"></div>
+            </div>
+            <p class="progress-text">{{ exportProgress }}%</p>
+          </div>
+
+          <!-- Message -->
+          <p class="export-message" *ngIf="exportStatus === 'Processing'">
+            Please wait while we generate your export file. This may take a few moments for large datasets.
+          </p>
+          <p class="export-message" *ngIf="exportStatus === 'Pending'">
+            Your export job is queued and will start shortly...
+          </p>
+          <p class="export-message text-success" *ngIf="exportStatus === 'Completed'">
+            Export completed successfully! Your file will download automatically.
+          </p>
+          <p class="export-message text-danger" *ngIf="exportStatus === 'Failed'">
+            Export failed. Please try again or check the history for details.
+          </p>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-outline" (click)="closeExportDialog()">
+          {{ exportStatus === 'Completed' || exportStatus === 'Failed' ? 'Close' : 'Run in Background' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Permission Modal -->
+  <div class="modal-overlay" *ngIf="showPermissionModal">
+    <div class="modal modal-xl">
+      <div class="modal-header">
+        <div class="header-content">
+          <div class="header-icon">
+            <i class="fas fa-shield-alt"></i>
+          </div>
+          <div class="header-text">
+            <h2>Manage Permissions</h2>
+            <p class="modal-subtitle">{{ selectedRole?.name }} - Configure access controls and permissions</p>
+          </div>
+        </div>
+        <button class="btn-close" (click)="closePermissionModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="permission-management">
+          <!-- Permission Statistics -->
+          <div class="permission-stats">
+            <div class="stat-card">
+              <div class="stat-icon">
+                <i class="fas fa-key"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-number">{{ assignedPermissionIds.size }}</div>
+                <div class="stat-label">Assigned</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">
+                <i class="fas fa-list"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-number">{{ allPermissions.length }}</div>
+                <div class="stat-label">Total Available</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">
+                <i class="fas fa-filter"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-number">{{ getFilteredPermissions().length }}</div>
+                <div class="stat-label">Filtered</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Professional Filter & Actions Bar -->
+          <div class="filter-actions-bar">
+            <!-- Search Section -->
+            <div class="search-section">
+              <div class="search-label">SEARCH</div>
+              <div class="search-container">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" 
+                       [(ngModel)]="permissionSearchQuery" 
+                       (ngModelChange)="onPermissionSearch()"
+                       placeholder="Search permissions..." 
+                       class="search-field">
+              </div>
+            </div>
+
+            <!-- Filter Pills -->
+            <div class="filter-pills">
+              <div class="filter-pill">
+                <label>Module</label>
+                <select [(ngModel)]="permissionModuleFilter" (ngModelChange)="onPermissionFilterChange()" class="pill-select">
+                  <option value="">All</option>
+                  <option *ngFor="let module of permissionModules" [value]="module">{{ module }}</option>
+                </select>
+              </div>
+              <div class="filter-pill">
+                <label>Action</label>
+                <select [(ngModel)]="permissionActionFilter" (ngModelChange)="onPermissionFilterChange()" class="pill-select">
+                  <option value="">All</option>
+                  <option *ngFor="let action of permissionActions" [value]="action">{{ action }}</option>
+                </select>
+              </div>
+              <div class="filter-pill">
+                <label>Status</label>
+                <select [(ngModel)]="permissionStatusFilter" (ngModelChange)="onPermissionFilterChange()" class="pill-select">
+                  <option value="">All</option>
+                  <option value="assigned">Assigned</option>
+                  <option value="unassigned">Unassigned</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+              <div class="action-label">ACTIONS</div>
+              <div class="buttons-container">
+                <button class="action-btn assign-btn" 
+                        (click)="assignAllPermissions()" 
+                        [disabled]="isLoadingPermissions || getUnassignedFilteredPermissions().length === 0">
+                  <i class="fas fa-plus"></i>
+                  <span>Assign All</span>
+                  <span class="count">{{ getUnassignedFilteredPermissions().length }}</span>
+                </button>
+                <button class="action-btn remove-btn" 
+                        (click)="removeAllPermissions()" 
+                        [disabled]="isLoadingPermissions || getAssignedFilteredPermissions().length === 0">
+                  <i class="fas fa-minus"></i>
+                  <span>Remove All</span>
+                  <span class="count">{{ getAssignedFilteredPermissions().length }}</span>
+                </button>
+                <button class="action-btn clear-btn" 
+                        (click)="clearPermissionFilters()" 
+                        [disabled]="isLoadingPermissions">
+                  <i class="fas fa-times"></i>
+                  <span>Clear</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Permission List with Enhanced UI -->
+          <div class="permission-list-container">
+            <div class="permission-list-header">
+              <h4>
+                Permissions
+                <span class="permission-count" *ngIf="permissionTotalCount > 0">({{ permissionTotalCount }})</span>
+              </h4>
+            </div>
+
+            <div class="permission-list">
+              <div *ngIf="isLoadingPermissions" class="loading-state">
+                <div class="loading-spinner">
+                  <i class="fas fa-spinner fa-spin"></i>
+                </div>
+                <span>Loading permissions...</span>
+              </div>
+              
+              <div *ngIf="!isLoadingPermissions && getFilteredPermissions().length === 0" class="empty-state">
+                <div class="empty-icon">
+                  <i class="fas fa-search"></i>
+                </div>
+                <h4>No permissions found</h4>
+                <p>No permissions match your current filters. Try adjusting your search criteria.</p>
+                <button class="btn btn-outline" (click)="clearPermissionFilters()">
+                  <i class="fas fa-times"></i>
+                  Clear Filters
+                </button>
+              </div>
+
+              <div class="permission-item" *ngFor="let permission of getFilteredPermissions()" 
+                   [class.assigned]="isPermissionAssigned(permission.id)">
+                <div class="permission-checkbox">
+                  <input type="checkbox" 
+                         [checked]="isPermissionAssigned(permission.id)"
+                         (change)="togglePermission(permission.id)"
+                         class="permission-check">
+                </div>
+                
+                <div class="permission-info">
+                  <div class="permission-header">
+                    <div class="permission-name">{{ permission.name }}</div>
+                    <div class="permission-code">{{ permission.code }}</div>
+                  </div>
+                  <div class="permission-description">{{ permission.description }}</div>
+                  <div class="permission-meta">
+                    <span class="permission-module">
+                      <i class="fas fa-folder"></i>
+                      {{ permission.module }}
+                    </span>
+                    <span class="permission-action">
+                      <i class="fas fa-cog"></i>
+                      {{ permission.action }}
+                    </span>
+                    <span class="permission-resource" *ngIf="permission.resource">
+                      <i class="fas fa-database"></i>
+                      {{ permission.resource }}
+                    </span>
+                  </div>
+                </div>
+                
+                <div class="permission-actions">
+                  <button class="btn btn-sm" 
+                    [class.btn-success]="!isPermissionAssigned(permission.id)"
+                    [class.btn-outline-danger]="isPermissionAssigned(permission.id)"
+                    (click)="togglePermission(permission.id)"
+                    [disabled]="isLoadingPermissions">
+                    <i class="fas" [class.fa-plus]="!isPermissionAssigned(permission.id)" 
+                      [class.fa-minus]="isPermissionAssigned(permission.id)"></i>
+                    {{ isPermissionAssigned(permission.id) ? 'Remove' : 'Assign' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Permission Pagination -->
+            <div class="pagination-section" *ngIf="getPermissionTotalPages() > 1">
+              <div class="pagination-wrapper">
+                <div class="pagination-left">
+                  <span class="pagination-info">
+                    Page {{ permissionCurrentPage }} of {{ getPermissionTotalPages() }}
+                  </span>
+                </div>
+
+                <div class="pagination-center">
+                  <button class="pagination-btn" [disabled]="permissionCurrentPage === 1" (click)="onPermissionPageChange(1)" title="First Page">
+                    <i class="fas fa-angle-double-left"></i>
+                  </button>
+                  <button class="pagination-btn" [disabled]="permissionCurrentPage === 1" (click)="onPermissionPageChange(permissionCurrentPage - 1)" title="Previous Page">
+                    <i class="fas fa-angle-left"></i>
+                  </button>
+
+                  <button class="pagination-btn" [disabled]="permissionCurrentPage === getPermissionTotalPages()"
+                    (click)="onPermissionPageChange(permissionCurrentPage + 1)" title="Next Page">
+                    <i class="fas fa-angle-right"></i>
+                  </button>
+                  <button class="pagination-btn" [disabled]="permissionCurrentPage === getPermissionTotalPages()"
+                    (click)="onPermissionPageChange(getPermissionTotalPages())" title="Last Page">
+                    <i class="fas fa-angle-double-right"></i>
+                  </button>
+                </div>
+
+                <div class="pagination-right">
+                  <label>Per page:</label>
+                  <select class="pagination-select" [(ngModel)]="permissionPageSize" (ngModelChange)="onPermissionPageSizeChange($event)">
+                    <option value="3">3</option>
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-outline" (click)="closePermissionModal()">
+            <i class="fas fa-times"></i>
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Modal -->
+  <div class="modal-overlay" *ngIf="showUserModal">
+    <div class="modal modal-xl">
+      <div class="modal-header">
+        <div class="header-content">
+          <div class="header-icon">
+            <i class="fas fa-users-cog"></i>
+          </div>
+          <div class="header-text">
+            <h2>Manage Users</h2>
+            <p class="modal-subtitle">{{ selectedRole?.name }} - Assign and manage user access</p>
+          </div>
+        </div>
+        <button class="btn-close" (click)="closeUserModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="user-management">
+          <!-- User Statistics -->
+          <div class="user-stats">
+            <div class="stat-card">
+              <div class="stat-icon">
+                <i class="fas fa-user-check"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-number">{{ users.length }}</div>
+                <div class="stat-label">Assigned Users</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">
+                <i class="fas fa-user-plus"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-number">{{ totalAvailableUsers }}</div>
+                <div class="stat-label">Available Users</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">
+                <i class="fas fa-check-square"></i>
+              </div>
+              <div class="stat-content">
+                <div class="stat-number">{{ selectedUserIds.size }}</div>
+                <div class="stat-label">Selected</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Professional Filter & Actions Bar -->
+          <div class="filter-actions-bar">
+            <!-- Search Section -->
+            <div class="search-section">
+              <div class="search-label">SEARCH</div>
+              <div class="search-container">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" 
+                       [(ngModel)]="userSearchQuery" 
+                       (ngModelChange)="onUserSearch()"
+                       placeholder="Search users..." 
+                       class="search-field">
+              </div>
+            </div>
+
+            <!-- Filter Pills -->
+            <div class="filter-pills">
+              <div class="filter-pill">
+                <label>Department</label>
+                <select [(ngModel)]="userDepartmentFilter" (ngModelChange)="onUserFilterChange()" class="pill-select">
+                  <option value="">All</option>
+                  <option *ngFor="let dept of availableDepartments" [value]="dept">{{ dept }}</option>
+                </select>
+              </div>
+              <div class="filter-pill">
+                <label>Status</label>
+                <select [(ngModel)]="userStatusFilter" (ngModelChange)="onUserFilterChange()" class="pill-select">
+                  <option value="">All</option>
+                  <option value="true">Active</option>
+                  <option value="false">Inactive</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+              <div class="action-label">ACTIONS</div>
+              <div class="buttons-container">
+                <button class="action-btn assign-btn" 
+                        (click)="assignSelectedUsers()" 
+                        [disabled]="isLoadingUsers || !hasUnassignedUsersSelected()">
+                  <i class="fas fa-user-plus"></i>
+                  <span>Assign</span>
+                  <span class="count">{{ selectedUserIds.size }}</span>
+                </button>
+                <button class="action-btn remove-btn" 
+                        (click)="removeSelectedUsers()" 
+                        [disabled]="isLoadingUsers || !hasAssignedUsersSelected()">
+                  <i class="fas fa-user-minus"></i>
+                  <span>Remove</span>
+                  <span class="count">{{ selectedUserIds.size }}</span>
+                </button>
+                <button class="action-btn select-btn" 
+                        (click)="selectAllUnassignedUsers()" 
+                        [disabled]="isLoadingUsers">
+                  <i class="fas fa-check-square"></i>
+                  <span>Select All</span>
+                </button>
+                <button class="action-btn clear-btn" 
+                        (click)="clearUserFilters()" 
+                        [disabled]="isLoadingUsers">
+                  <i class="fas fa-times"></i>
+                  <span>Clear Filters</span>
+                </button>
+                <button class="action-btn clear-selection-btn" 
+                        (click)="clearUserSelection()" 
+                        [disabled]="isLoadingUsers || selectedUserIds.size === 0">
+                  <i class="fas fa-square"></i>
+                  <span>Clear Selection</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- User Lists with Enhanced UI -->
+          <div class="user-sections">
+            <!-- Assigned Users Section -->
+            <div class="user-section">
+              <div class="user-section-header">
+                <h4>
+                  <i class="fas fa-user-check"></i>
+                  Assigned Users
+                  <span class="user-count">{{ users.length }}</span>
+                </h4>
+                  <button class="btn btn-sm btn-outline" (click)="refreshAssignedUsers()" 
+                          [disabled]="isLoadingUsers">
+                    <i class="fas fa-sync-alt"></i>
+                    Refresh
+                  </button>
+              </div>
+              
+              <div class="user-list">
+                <div *ngIf="isLoadingUsers" class="loading-state">
+                  <div class="loading-spinner">
+                    <i class="fas fa-spinner fa-spin"></i>
+                  </div>
+                  <span>Loading assigned users...</span>
+                </div>
+                
+                <div *ngIf="!isLoadingUsers && users.length === 0" class="empty-state">
+                  <div class="empty-icon">
+                    <i class="fas fa-user-times"></i>
+                  </div>
+                  <h4>No users assigned</h4>
+                  <p>This role doesn't have any users assigned yet. Use the available users section to assign users.</p>
+                </div>
+                
+                <div class="user-item assigned" *ngFor="let user of users">
+                  <div class="user-checkbox">
+                    <input type="checkbox" 
+                           [checked]="selectedUserIds.has(user.id)"
+                           (change)="toggleUserSelection(user.id)"
+                           class="user-check">
+                  </div>
+                  
+                  <div class="user-info">
+                    <div class="user-avatar">
+                      <img *ngIf="getUserAvatarUrl(user)" 
+                           [src]="getUserAvatarUrl(user)" 
+                           [alt]="user.fullName"
+                           (error)="onAvatarError($event, user)"
+                           class="avatar-image">
+                      <div *ngIf="!getUserAvatarUrl(user)" class="avatar-placeholder">
+                        {{ getUserInitials(user) }}
+                      </div>
+                    </div>
+                    <div class="user-details">
+                      <div class="user-header">
+                        <div class="user-name">{{ user.fullName }}</div>
+                        <div class="user-status-badge" [class.status-active]="user.isActive" [class.status-inactive]="!user.isActive">
+                          <i class="fas" [class.fa-check-circle]="user.isActive" [class.fa-times-circle]="!user.isActive"></i>
+                          {{ user.isActive ? 'Active' : 'Inactive' }}
+                        </div>
+                      </div>
+                      <div class="user-email">{{ user.email }}</div>
+                      <div class="user-meta">
+                        <span class="user-department">
+                          {{ user.department || 'No Department' }}
+                        </span>
+                        <span class="user-position" *ngIf="user.jobTitle">
+                          <i class="fas fa-briefcase"></i>
+                          {{ user.jobTitle }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="user-actions">
+                    <button class="btn btn-sm btn-outline-danger" (click)="removeUserFromRole(user.id, selectedRole!.id)"
+                            [disabled]="isLoadingUsers">
+                      <i class="fas fa-user-minus"></i>
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Available Users Section -->
+            <div class="user-section">
+              <div class="user-section-header">
+                <h4>
+                  <i class="fas fa-user-plus"></i>
+                  Available Users
+                  <span class="user-count">{{ totalAvailableUsers }}</span>
+                </h4>
+                  <button class="btn btn-sm btn-outline" (click)="refreshAvailableUsers()" 
+                          [disabled]="isLoadingUsers">
+                    <i class="fas fa-sync-alt"></i>
+                    Refresh
+                  </button>
+              </div>
+              
+              <div class="user-list">
+                <div *ngIf="!isLoadingUsers && getUnassignedUsers().length === 0" class="empty-state">
+                  <div class="empty-icon">
+                    <i class="fas fa-search"></i>
+                  </div>
+                  <h4>No available users found</h4>
+                  <p>No users match your current filters or all users are already assigned to this role.</p>
+                </div>
+                
+                <div class="user-item available" *ngFor="let user of getUnassignedUsers()">
+                  <div class="user-checkbox">
+                    <input type="checkbox" 
+                           [checked]="selectedUserIds.has(user.id)"
+                           (change)="toggleUserSelection(user.id)"
+                           class="user-check">
+                  </div>
+                  
+                  <div class="user-info">
+                    <div class="user-avatar">
+                      <img *ngIf="getUserAvatarUrl(user)" 
+                           [src]="getUserAvatarUrl(user)" 
+                           [alt]="user.fullName"
+                           (error)="onAvatarError($event, user)"
+                           class="avatar-image">
+                      <div *ngIf="!getUserAvatarUrl(user)" class="avatar-placeholder">
+                        {{ getUserInitials(user) }}
+                      </div>
+                    </div>
+                    <div class="user-details">
+                      <div class="user-header">
+                        <div class="user-name">{{ user.fullName }}</div>
+                        <div class="user-status-badge" [class.status-active]="user.isActive" [class.status-inactive]="!user.isActive">
+                          <i class="fas" [class.fa-check-circle]="user.isActive" [class.fa-times-circle]="!user.isActive"></i>
+                          {{ user.isActive ? 'Active' : 'Inactive' }}
+                        </div>
+                      </div>
+                      <div class="user-email">{{ user.email }}</div>
+                      <div class="user-meta">
+                        <span class="user-department">
+                          {{ user.department || 'No Department' }}
+                        </span>
+                        <span class="user-position" *ngIf="user.jobTitle">
+                          <i class="fas fa-briefcase"></i>
+                          {{ user.jobTitle }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="user-actions">
+                    <button class="btn btn-sm btn-primary" (click)="assignUserToRole(user.id, selectedRole!.id)"
+                            [disabled]="isLoadingUsers">
+                      <i class="fas fa-user-plus"></i>
+                      Assign
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- User Pagination -->
+              <div class="pagination-section" *ngIf="getUserTotalPages() > 1">
+                <div class="pagination-wrapper">
+                  <div class="pagination-left">
+                    <span class="pagination-info">
+                      Showing {{ allUsers.length || 0 }} of {{ totalAvailableUsers }} available • Page {{ userCurrentPage }} of {{ getUserTotalPages() }}
+                    </span>
+                  </div>
+
+                  <div class="pagination-center">
+                    <button class="pagination-btn" [disabled]="userCurrentPage === 1" (click)="onUserPageChange(1)" title="First Page">
+                      <i class="fas fa-angle-double-left"></i>
+                    </button>
+                    <button class="pagination-btn" [disabled]="userCurrentPage === 1" (click)="onUserPageChange(userCurrentPage - 1)" title="Previous Page">
+                      <i class="fas fa-angle-left"></i>
+                    </button>
+
+                    <button class="pagination-btn" [disabled]="userCurrentPage === getUserTotalPages()"
+                      (click)="onUserPageChange(userCurrentPage + 1)" title="Next Page">
+                      <i class="fas fa-angle-right"></i>
+                    </button>
+                    <button class="pagination-btn" [disabled]="userCurrentPage === getUserTotalPages()"
+                      (click)="onUserPageChange(getUserTotalPages())" title="Last Page">
+                      <i class="fas fa-angle-double-right"></i>
+                    </button>
+                  </div>
+
+                  <div class="pagination-right">
+                    <label>Per page:</label>
+                    <select class="pagination-select" [(ngModel)]="userPageSize" (ngModelChange)="onUserPageSizeChange($event)">
+                      <option value="3">3</option>
+                      <option value="5">5</option>
+                      <option value="10">10</option>
+                      <option value="20">20</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-outline" (click)="closeUserModal()">
+            <i class="fas fa-times"></i>
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hierarchy Modal -->
+  <div class="modal-overlay" *ngIf="showHierarchyModal">
+    <div class="modal modal-full">
+      <div class="modal-header">
+        <div class="header-content">
+          <div class="header-icon">
+            <i class="fas fa-sitemap"></i>
+          </div>
+          <div class="header-text">
+            <h2>Role Hierarchy</h2>
+            <p class="modal-subtitle">Complete organizational role structure and relationships</p>
+          </div>
+        </div>
+        <button class="btn-close" (click)="closeHierarchyModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div id="hierarchy-export-content" class="hierarchy-export-wrapper">
+          <!-- Statistics Summary -->
+          <div class="hierarchy-stats">
+            <div class="stat-item">
+              <i class="fas fa-layer-group"></i>
+              <div class="stat-details">
+                <span class="stat-value">{{ hierarchy.length }}</span>
+                <span class="stat-label">Root Roles</span>
+          </div>
+          </div>
+            <div class="stat-item">
+              <i class="fas fa-sitemap"></i>
+              <div class="stat-details">
+                <span class="stat-value">{{ getTotalRoles() }}</span>
+                <span class="stat-label">Total Roles</span>
+                    </div>
+                    </div>
+            <div class="stat-item">
+              <i class="fas fa-link"></i>
+              <div class="stat-details">
+                <span class="stat-value">{{ getTotalChildRoles() }}</span>
+                <span class="stat-label">Child Relationships</span>
+              </div>
+            </div>
+            <div class="stat-item">
+              <i class="fas fa-users"></i>
+              <div class="stat-details">
+                <span class="stat-value">{{ getTotalUsers() }}</span>
+                <span class="stat-label">Total Users</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hierarchy Tree - Centered Design -->
+          <div class="hierarchy-wrapper">
+          <div class="hierarchy-tree" *ngIf="hierarchy.length > 0">
+            <div class="hierarchy-item" *ngFor="let rootRole of hierarchy">
+              <!-- Root Role Header -->
+              <div class="role-item-header">
+                <div class="role-info">
+                  <div class="role-avatar" [style.background-color]="getRoleColor(rootRole.color)">
+                    <i [class]="getRoleIcon(rootRole.icon)"></i>
+                  </div>
+                  <div class="role-title">
+                    <h3>{{ rootRole.name }}</h3>
+                    <div class="role-meta">
+                      <span class="meta-tag">{{ rootRole.roleType }}</span>
+                      <span class="meta-divider">•</span>
+                      <span class="meta-tag">Level {{ rootRole.level }}</span>
+                      <span class="meta-divider">•</span>
+                      <span class="meta-status" [class.active]="rootRole.isActive">
+                        <i class="fas" [class.fa-circle]="rootRole.isActive" [class.fa-times-circle]="!rootRole.isActive"></i>
+                        {{ rootRole.isActive ? 'Active' : 'Inactive' }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div class="role-counts">
+                  <div class="count-item">
+                    <i class="fas fa-users"></i>
+                    <div>
+                      <span class="count-value">{{ rootRole.userCount }}</span>
+                      <span class="count-label">Users</span>
+                    </div>
+                  </div>
+                  <div class="count-item">
+                    <i class="fas fa-key"></i>
+                    <div>
+                      <span class="count-value">{{ rootRole.permissionCount }}</span>
+                      <span class="count-label">Permissions</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Children Roles -->
+              <div class="children-list" *ngIf="rootRole.children.length > 0">
+                <div class="child-item" *ngFor="let child of rootRole.children">
+                  <div class="child-avatar" [style.background-color]="getRoleColor(child.color)">
+                      <i [class]="getRoleIcon(child.icon)"></i>
+          </div>
+                  <div class="child-info">
+                    <h4>{{ child.name }}</h4>
+                    <div class="child-meta">
+                      <span>{{ child.roleType }}</span>
+                </div>
+              </div>
+                  <div class="child-counts">
+                    <div class="count-item">
+                      <i class="fas fa-users"></i>
+                      <span class="count-value">{{ child.userCount }}</span>
+                  </div>
+                    <div class="count-item">
+                      <i class="fas fa-key"></i>
+                      <span class="count-value">{{ child.permissionCount }}</span>
+                  </div>
+                  </div>
+                  <span class="child-status">
+                    <i class="fas fa-circle" [class.active]="child.isActive"></i>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+            <!-- Empty State -->
+            <div class="empty-state" *ngIf="hierarchy.length === 0">
+              <div class="empty-icon">
+                <i class="fas fa-sitemap"></i>
+              </div>
+              <h3>No Role Hierarchy</h3>
+              <p>No roles have been configured yet or no hierarchy relationships exist.</p>
+              <button class="btn btn-primary" (click)="closeHierarchyModal()">
+                <i class="fas fa-plus"></i>
+                Create First Role
+              </button>
+                    </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+        <button class="btn btn-primary" (click)="exportHierarchy()">
+          <i class="fas fa-download"></i>
+          Export Hierarchy
+        </button>
+        <button class="btn btn-outline" (click)="closeHierarchyModal()">
+          <i class="fas fa-times"></i>
+            Close
+          </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Notifications -->
+  <app-notification-container></app-notification-container>
+</div>

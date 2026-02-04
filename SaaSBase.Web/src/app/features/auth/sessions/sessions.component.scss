@@ -1,0 +1,108 @@
+/* Action button colors for sessions */
+.action-buttons {
+  .action-btn-revoke {
+    color: #dc2626 !important; // Red
+    
+    i {
+      color: #dc2626 !important;
+    }
+    
+    &:hover {
+      background-color: #fef2f2 !important;
+      border-color: #dc2626 !important;
+      
+      i {
+        color: #b91c1c !important;
+      }
+    }
+  }
+
+  .action-btn-revoke-all {
+    color: #dc2626 !important; // Red
+    
+    i {
+      color: #dc2626 !important;
+    }
+    
+    &:hover {
+      background-color: #fef2f2 !important;
+      border-color: #dc2626 !important;
+      
+      i {
+        color: #b91c1c !important;
+      }
+    }
+  }
+}
+
+// Mobile card buttons
+.mobile-card-actions {
+  .action-btn-revoke {
+    color: #dc2626 !important;
+    border-color: #dc2626 !important;
+    
+    &:hover {
+      background-color: #fef2f2 !important;
+      color: #b91c1c !important;
+    }
+  }
+
+  .action-btn-revoke-all {
+    color: #dc2626 !important;
+    border-color: #dc2626 !important;
+    
+    &:hover {
+      background-color: #fef2f2 !important;
+      color: #b91c1c !important;
+    }
+  }
+}
+
+// Override common CSS: Make header-stats and buttons appear in same row
+.page-header {
+  .header-main {
+    .header-actions {
+      display: flex !important;
+      align-items: center;
+      gap: 0.625rem;
+      grid-column: 2;
+      grid-row: 1;
+      justify-content: flex-end;
+      flex-shrink: 0;
+
+      .header-stats {
+        display: flex;
+        gap: 0.625rem;
+        align-items: center;
+        grid-column: unset !important;
+        grid-row: unset !important;
+        width: auto;
+        margin-top: 0;
+      }
+
+      .btn,
+      .btn-primary,
+      .btn-outline {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        grid-column: unset !important;
+        grid-row: unset !important;
+      }
+
+      @media (max-width: 767px) {
+        grid-column: 1;
+        grid-row: 2;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        width: 100%;
+
+        .header-stats {
+          width: 100%;
+          justify-content: flex-start;
+        }
+      }
+    }
+  }
+}
+

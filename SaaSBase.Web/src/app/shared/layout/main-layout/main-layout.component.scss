@@ -1,0 +1,157 @@
+.main-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--bg-primary);
+  padding-top: 64px; // Account for fixed header
+}
+
+.org-inactive-banner {
+  position: fixed;
+  top: 64px; // Below header
+  left: 0;
+  right: 0;
+  z-index: var(--z-modal, 1000);
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  padding: 12px 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  animation: slideDown 0.3s ease-out;
+
+  .banner-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 var(--space-4);
+
+    .banner-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .banner-text {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+
+      strong {
+        font-weight: 600;
+        font-size: 14px;
+      }
+
+      span {
+        font-size: 13px;
+        opacity: 0.95;
+      }
+    }
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+// Adjust padding when banner is visible
+.main-layout:has(.org-inactive-banner) {
+  padding-top: 120px; // Header height (64px) + banner height (~56px)
+}
+
+.layout-container {
+  display: flex;
+  flex: 1;
+  min-height: calc(100vh - 64px);
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  transition: margin-left var(--transition-normal);
+  margin-left: 240px; // Default sidebar width
+  background: var(--bg-primary);
+  min-height: calc(100vh - 64px);
+  width: calc(100% - 240px);
+  max-width: calc(100% - 240px);
+}
+
+.main-content.sidebar-collapsed {
+  margin-left: 80px; // Collapsed sidebar width
+  width: calc(100% - 80px);
+  max-width: calc(100% - 80px);
+}
+
+// Tablet/Small Desktop: Icon-only sidebar (1025px - 1140px)
+@media (min-width: 1025px) and (max-width: 1140px) {
+  .main-content.sidebar-collapsed {
+    margin-left: 80px; // Icon-only sidebar width
+    width: calc(100% - 80px);
+    max-width: calc(100% - 80px);
+  }
+  
+  .main-content:not(.sidebar-collapsed) {
+    margin-left: 240px; // Full sidebar width when expanded
+    width: calc(100% - 240px);
+    max-width: calc(100% - 240px);
+  }
+}
+
+.content-wrapper {
+  flex: 1;
+  padding: var(--space-4);
+  overflow-y: auto;
+  overflow-x: visible;
+  background: var(--bg-primary);
+  width: 100%;
+  max-width: 100%;
+}
+
+.backdrop {
+  position: fixed;
+  top: 64px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: var(--z-modal-backdrop);
+}
+
+// Responsive design
+// Mobile view for screens <= 1024px
+@media (max-width: 1024px) {
+  .main-layout {
+    padding-top: 64px;
+  }
+
+  .main-content {
+    margin-left: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  .main-content.sidebar-collapsed {
+    margin-left: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  .content-wrapper {
+    padding: var(--space-3);
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .content-wrapper {
+    padding: var(--space-2);
+  }
+}

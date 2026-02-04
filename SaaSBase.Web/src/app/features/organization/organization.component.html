@@ -1,0 +1,575 @@
+<!-- Organizations List View (System Admin) -->
+<div class="organizations-list-page" *ngIf="showListView && !isLoading">
+  <header class="page-header">
+    <div class="header-surface">
+      <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a routerLink="/system/dashboard" class="crumb crumb-link">
+          <i class="fas fa-home"></i>
+          <span>System Dashboard</span>
+        </a>
+        <i class="fas fa-angle-right separator" aria-hidden="true"></i>
+        <span class="crumb current">All Organizations</span>
+      </nav>
+
+      <div class="header-main">
+        <div class="title-block">
+          <div class="title-content">
+            <h1 class="page-title">All Organizations</h1>
+            <p class="page-description">View and manage all organizations in the system</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Search and Filters -->
+  <div class="list-controls">
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input 
+        type="text" 
+        [(ngModel)]="searchTerm" 
+        placeholder="Search organizations..."
+        class="search-input">
+    </div>
+  </div>
+
+  <!-- Organizations List -->
+  <div class="organizations-grid" *ngIf="filteredOrganizations.length > 0">
+    <div 
+      class="organization-card" 
+      *ngFor="let org of filteredOrganizations"
+      (click)="selectOrganization(org)">
+      <div class="org-card-header">
+        <div class="org-logo-small" [style.background-color]="org.primaryColor || '#0d6efd'">
+          <span *ngIf="!org.logoUrl">{{ (org.name || 'O').charAt(0).toUpperCase() }}</span>
+          <img *ngIf="org.logoUrl" [src]="org.logoUrl" [alt]="org.name" />
+        </div>
+        <div class="org-card-title">
+          <h3>{{ org.name }}</h3>
+          <span class="org-status-badge" [class.active]="org.isActive" [class.inactive]="!org.isActive">
+            {{ org.isActive ? 'Active' : 'Inactive' }}
+          </span>
+        </div>
+      </div>
+      <div class="org-card-body">
+        <div class="org-stat">
+          <i class="fas fa-users"></i>
+          <span>{{ org.userCount || 0 }} Users</span>
+        </div>
+        <div class="org-stat">
+          <i class="fas fa-map-marker-alt"></i>
+          <span>{{ org.locationCount || 0 }} Locations</span>
+        </div>
+        <div class="org-stat" *ngIf="org.createdAtUtc">
+          <i class="fas fa-calendar"></i>
+          <span>Created {{ formatDate(org.createdAtUtc) }}</span>
+        </div>
+      </div>
+      <div class="org-card-footer">
+        <button class="btn btn-primary btn-sm">
+          View Details <i class="fas fa-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="filteredOrganizations.length === 0 && !isLoading">
+    <i class="fas fa-building"></i>
+    <p>{{ searchTerm ? 'No organizations found matching your search' : 'No organizations found' }}</p>
+  </div>
+</div>
+
+<!-- Organization Details View -->
+<div class="organization-settings-page" *ngIf="!showListView && !isLoading">
+  <!-- Back Button for System Admin -->
+  <div class="back-button-container" *ngIf="isSystemAdmin && isSystemRoute">
+    <button class="btn btn-link" (click)="backToList()">
+      <i class="fas fa-arrow-left"></i> Back to Organizations List
+    </button>
+  </div>
+
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-surface">
+      <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a routerLink="/dashboard" class="crumb crumb-link">
+          <i class="fas fa-home"></i>
+          <span>Dashboard</span>
+        </a>
+        <i class="fas fa-angle-right separator" aria-hidden="true"></i>
+        <span class="crumb current">Organization Settings</span>
+      </nav>
+
+      <div class="header-main">
+        <div class="title-block" *ngIf="organization">
+          <div class="org-header-content">
+            <div class="org-logo-section">
+              <div class="org-logo" [style.background-color]="organization.primaryColor">
+                <span *ngIf="!organization.logoUrl">{{ (organization.name || 'O').charAt(0).toUpperCase() }}</span>
+                <img *ngIf="organization.logoUrl" [src]="organization.logoUrl" [alt]="organization.name || 'Organization'" />
+              </div>
+            </div>
+            <div class="org-title-content">
+              <h1 class="page-title">{{ organization.name || 'Organization Settings' }}</h1>
+              <p class="page-description" *ngIf="organization.description">{{ organization.description }}</p>
+              <p class="page-description" *ngIf="!organization.description">Manage your organization profile, locations, settings, and integrations</p>
+              <div class="org-meta">
+                <span *ngIf="organization.website" class="meta-item">
+                  <i class="fas fa-globe"></i> {{ organization.website }}
+                </span>
+                <span *ngIf="organization.email" class="meta-item">
+                  <i class="fas fa-envelope"></i> {{ organization.email }}
+                </span>
+                <span *ngIf="organization.phone" class="meta-item">
+                  <i class="fas fa-phone"></i> {{ organization.phone }}
+                </span>
+                <span class="meta-item">
+                  <i class="fas fa-calendar"></i> Created {{ formatDate(organization.createdAt) }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="title-block" *ngIf="!organization">
+          <div class="title-content">
+            <h1 class="page-title">Organization Settings</h1>
+            <p class="page-description">Manage your organization profile, locations, settings, and integrations</p>
+          </div>
+        </div>
+
+        <div class="header-actions" *ngIf="organization">
+          <div class="header-stats">
+            <div class="stat-card">
+              <div class="stat-icon" [class.stat-icon-success]="organization.isActive" [class.stat-icon-warning]="!organization.isActive">
+                <i class="fas" [class.fa-check-circle]="organization.isActive" [class.fa-times-circle]="!organization.isActive"></i>
+              </div>
+              <div class="stat-content">
+                <span class="stat-value">{{ organization.isActive ? 'Active' : 'Inactive' }}</span>
+                <span class="stat-label">Status</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Tabs Navigation -->
+  <div class="tabs-container">
+    <div class="tabs-nav-wrapper">
+      <!-- Left scroll arrow -->
+      <button 
+        class="scroll-arrow scroll-arrow-left" 
+        *ngIf="showLeftArrow"
+        (click)="scrollTabs('left')"
+        aria-label="Scroll tabs left">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      
+      <div 
+        class="tabs-nav" 
+        #tabsNav
+        (scroll)="onTabsScroll()">
+        <button 
+          class="tab-button" 
+          [class.active]="activeTab === 'profile'"
+          (click)="setActiveTab('profile')">
+          <i class="fas fa-building"></i>
+          <span>Profile</span>
+        </button>
+        <button 
+          *ngIf="showLocationsTab"
+          class="tab-button" 
+          [class.active]="activeTab === 'locations'"
+          (click)="setActiveTab('locations')">
+          <i class="fas fa-map-marker-alt"></i>
+          <span>Locations</span>
+        </button>
+        <button 
+          *ngIf="showBusinessSettingsTab"
+          class="tab-button" 
+          [class.active]="activeTab === 'business-settings'"
+          (click)="setActiveTab('business-settings')">
+          <i class="fas fa-cog"></i>
+          <span>Business Settings</span>
+        </button>
+        <button 
+          *ngIf="showCurrenciesTab"
+          class="tab-button" 
+          [class.active]="activeTab === 'currencies'"
+          (click)="setActiveTab('currencies')">
+          <i class="fas fa-dollar-sign"></i>
+          <span>Currencies</span>
+        </button>
+        <button 
+          *ngIf="showTaxRatesTab"
+          class="tab-button" 
+          [class.active]="activeTab === 'tax-rates'"
+          (click)="setActiveTab('tax-rates')">
+          <i class="fas fa-percentage"></i>
+          <span>Tax Rates</span>
+        </button>
+        <button 
+          *ngIf="showIntegrationsTab"
+          class="tab-button" 
+          [class.active]="activeTab === 'integrations'"
+          (click)="setActiveTab('integrations')">
+          <i class="fas fa-plug"></i>
+          <span>Integrations</span>
+        </button>
+        <button 
+          *ngIf="showNotificationsTab"
+          class="tab-button" 
+          [class.active]="activeTab === 'notifications'"
+          (click)="setActiveTab('notifications')">
+          <i class="fas fa-bell"></i>
+          <span>Notification Templates</span>
+        </button>
+      </div>
+      
+      <!-- Right scroll arrow -->
+      <button 
+        class="scroll-arrow scroll-arrow-right" 
+        *ngIf="showRightArrow"
+        (click)="scrollTabs('right')"
+        aria-label="Scroll tabs right">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="tab-content-wrapper">
+    <!-- Profile Tab -->
+    <div class="tab-content" *ngIf="activeTab === 'profile'">
+      <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" class="profile-form">
+        <!-- Basic Information Card -->
+        <div class="info-card">
+          <div class="card-header">
+            <div class="card-header-content">
+              <div class="card-icon basic">
+                <i class="fas fa-info-circle"></i>
+              </div>
+              <div>
+                <h2 class="card-title">Basic Information</h2>
+                <p class="card-subtitle">Update your organization's basic details</p>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="form-field">
+                <label class="field-label">
+                  Organization Name <span class="required">*</span>
+                </label>
+                <input
+                  type="text"
+                  class="field-input"
+                  formControlName="name"
+                  [class.field-input-error]="profileForm.get('name')?.invalid && profileForm.get('name')?.touched"
+                  placeholder="Enter organization name"
+                  required
+                />
+                <div class="field-error" *ngIf="profileForm.get('name')?.invalid && profileForm.get('name')?.touched">
+                  Organization name is required
+                </div>
+              </div>
+              <div class="form-field">
+                <label class="field-label">Website</label>
+                <input
+                  type="url"
+                  class="field-input"
+                  formControlName="website"
+                  placeholder="https://example.com"
+                />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-field full-width">
+                <label class="field-label">Description</label>
+                <textarea
+                  class="field-textarea"
+                  formControlName="description"
+                  placeholder="Enter organization description"
+                  rows="3"
+                ></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contact Information Card -->
+        <div class="info-card">
+          <div class="card-header">
+            <div class="card-header-content">
+              <div class="card-icon contact">
+                <i class="fas fa-address-book"></i>
+              </div>
+              <div>
+                <h2 class="card-title">Contact Information</h2>
+                <p class="card-subtitle">Manage your organization's contact details</p>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="form-field">
+                <label class="field-label">Email</label>
+                <input
+                  type="email"
+                  class="field-input"
+                  formControlName="email"
+                  [class.field-input-error]="profileForm.get('email')?.invalid && profileForm.get('email')?.touched"
+                  placeholder="contact@example.com"
+                />
+                <div class="field-error" *ngIf="profileForm.get('email')?.invalid && profileForm.get('email')?.touched">
+                  Please enter a valid email address
+                </div>
+              </div>
+              <div class="form-field">
+                <label class="field-label">Phone</label>
+                <input
+                  type="tel"
+                  class="field-input"
+                  formControlName="phone"
+                  placeholder="+1 (555) 123-4567"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Address Information Card -->
+        <div class="info-card">
+          <div class="card-header">
+            <div class="card-header-content">
+              <div class="card-icon address">
+                <i class="fas fa-map-marker-alt"></i>
+              </div>
+              <div>
+                <h2 class="card-title">Address Information</h2>
+                <p class="card-subtitle">Organization's physical address details</p>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="form-field full-width">
+                <label class="field-label">Street Address</label>
+                <input
+                  type="text"
+                  class="field-input"
+                  formControlName="address"
+                  placeholder="123 Main Street"
+                />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-field">
+                <label class="field-label">City</label>
+                <input
+                  type="text"
+                  class="field-input"
+                  formControlName="city"
+                  placeholder="City"
+                />
+              </div>
+              <div class="form-field">
+                <label class="field-label">State/Province</label>
+                <input
+                  type="text"
+                  class="field-input"
+                  formControlName="state"
+                  placeholder="State"
+                />
+              </div>
+              <div class="form-field">
+                <label class="field-label">Postal Code</label>
+                <input
+                  type="text"
+                  class="field-input"
+                  formControlName="postalCode"
+                  placeholder="12345"
+                />
+              </div>
+              <div class="form-field">
+                <label class="field-label">Country</label>
+                <input
+                  type="text"
+                  class="field-input"
+                  formControlName="country"
+                  placeholder="Country"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Branding Card -->
+        <div class="info-card">
+          <div class="card-header">
+            <div class="card-header-content">
+              <div class="card-icon branding">
+                <i class="fas fa-palette"></i>
+              </div>
+              <div>
+                <h2 class="card-title">Branding</h2>
+                <p class="card-subtitle">Customize your organization's visual identity</p>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="form-field">
+                <label class="field-label">Primary Color</label>
+                <div class="color-input-group">
+                  <input
+                    type="color"
+                    formControlName="primaryColor"
+                    class="form-control-color"
+                  />
+                  <input
+                    type="text"
+                    formControlName="primaryColor"
+                    class="field-input"
+                    placeholder="#0d6efd"
+                  />
+                </div>
+              </div>
+              <div class="form-field">
+                <label class="field-label">Secondary Color</label>
+                <div class="color-input-group">
+                  <input
+                    type="color"
+                    formControlName="secondaryColor"
+                    class="form-control-color"
+                  />
+                  <input
+                    type="text"
+                    formControlName="secondaryColor"
+                    class="field-input"
+                    placeholder="#6c757d"
+                  />
+                </div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-field">
+                <label class="field-label">Logo</label>
+                <div class="logo-upload-section">
+                  <div class="logo-wrapper">
+                    <div class="logo-preview">
+                      <img *ngIf="organization?.logoUrl" 
+                           [src]="organization?.logoUrl" 
+                           [alt]="organization?.name || 'Organization logo'"
+                           class="logo-image"
+                           (error)="onLogoImageError($event)" />
+                      <div class="logo-placeholder" *ngIf="!organization?.logoUrl">
+                        <i class="fas fa-image"></i>
+                        <span>No logo</span>
+                      </div>
+                    </div>
+                    <button *hasPermission="'Organizations.Update'" class="logo-edit-btn" type="button" (click)="logoFileInput.click()" [disabled]="uploadingLogo" title="Change Logo">
+                      <i class="fas fa-camera" *ngIf="!uploadingLogo"></i>
+                      <i class="fas fa-spinner fa-spin" *ngIf="uploadingLogo"></i>
+                    </button>
+                    <button *hasPermission="'Organizations.Update'" class="logo-remove-btn" type="button" (click)="removeLogo()" [disabled]="uploadingLogo || !organization?.logoUrl" title="Remove Logo">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                    <input #logoFileInput type="file" accept="image/*" (change)="onLogoFileSelected($event)" style="display: none;">
+                  </div>
+                  <span class="field-hint">Recommended: 200x200px, PNG or JPG, max 5MB</span>
+                </div>
+              </div>
+              <div class="form-field">
+                <label class="field-label">Active Status</label>
+                <div class="simple-status-toggle">
+                  <label class="toggle-switch">
+                    <input 
+                      type="checkbox" 
+                      formControlName="isActive" />
+                    <span class="toggle-slider"></span>
+                  </label>
+                  <span class="status-text" [class]="profileForm.get('isActive')?.value ? 'active' : 'inactive'">
+                    {{ profileForm.get('isActive')?.value ? 'Active' : 'Inactive' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button 
+            *hasPermission="'Organizations.Update'"
+            type="submit" 
+            class="btn btn-primary"
+            [disabled]="isSaving || profileForm.invalid">
+            <i class="fas" [class.fa-save]="!isSaving" [class.fa-spinner]="isSaving" [class.fa-spin]="isSaving"></i>
+            {{ isSaving ? 'Saving...' : 'Save Changes' }}
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Locations Tab -->
+    <div class="tab-content" *ngIf="activeTab === 'locations'">
+      <app-locations 
+        *ngIf="showLocationsTab && organizationId"
+        [organizationId]="organizationId">
+      </app-locations>
+    </div>
+
+    <!-- Business Settings Tab -->
+    <div class="tab-content" *ngIf="activeTab === 'business-settings'">
+      <app-business-settings 
+        *ngIf="showBusinessSettingsTab && organizationId"
+        [organizationId]="organizationId">
+      </app-business-settings>
+    </div>
+
+    <!-- Currencies Tab -->
+    <div class="tab-content" *ngIf="activeTab === 'currencies'">
+      <app-currencies 
+        *ngIf="showCurrenciesTab && organizationId"
+        [organizationId]="organizationId">
+      </app-currencies>
+    </div>
+
+    <!-- Tax Rates Tab -->
+    <div class="tab-content" *ngIf="activeTab === 'tax-rates'">
+      <app-tax-rates 
+        *ngIf="showTaxRatesTab && organizationId"
+        [organizationId]="organizationId">
+      </app-tax-rates>
+    </div>
+
+    <!-- Integrations Tab -->
+    <div class="tab-content" *ngIf="activeTab === 'integrations'">
+      <app-integration-settings 
+        *ngIf="showIntegrationsTab && organizationId"
+        [organizationId]="organizationId">
+      </app-integration-settings>
+    </div>
+
+    <!-- Notification Templates Tab -->
+    <div class="tab-content" *ngIf="activeTab === 'notifications'">
+      <app-notification-templates 
+        *ngIf="showNotificationsTab && organizationId"
+        [organizationId]="organizationId">
+      </app-notification-templates>
+    </div>
+  </div>
+</div>
+
+<!-- Loading State -->
+<div class="loading-container" *ngIf="isLoading">
+  <div class="spinner-border text-primary" role="status">
+    <span class="visually-hidden">Loading...</span>
+  </div>
+  <p class="mt-3">Loading organization settings...</p>
+</div>
+
+<app-notification-container></app-notification-container>

@@ -1,0 +1,91 @@
+<header class="header">
+  <div class="header-container">
+    <!-- Left Section - Logo -->
+    <div class="header-left">
+      <app-brand-logo size="md" [showText]="true" linkTo="/dashboard"></app-brand-logo>
+
+      <!-- Layout/Menu Toggle Button (after logo) -->
+      <button class="header-btn menu-btn" (click)="onToggleSidebar()" aria-label="Toggle layout">
+        <i class="fas fa-bars"></i>
+      </button>
+    </div>
+    
+    <!-- Center Section - Search -->
+    <div class="header-center">
+      <div class="search-container">
+        <i class="fas fa-search search-icon"></i>
+        <input 
+          type="text" 
+          placeholder="Search inventory, suppliers..." 
+          class="search-input"
+          [(ngModel)]="searchQuery">
+      </div>
+    </div>
+    
+    <!-- Right Section -->
+    <div class="header-right">
+      <!-- Notifications -->
+      <div class="notification-container">
+        <button class="header-btn notification-btn" (click)="toggleNotifications()" [class.active]="showNotifications">
+          <i class="fas fa-bell"></i>
+          <span class="notification-badge" *ngIf="notificationCount > 0">{{ notificationCount }}</span>
+        </button>
+        <div class="dropdown-panel notifications-panel" *ngIf="showNotifications">
+          <div class="dropdown-header">Notifications</div>
+          <div class="dropdown-empty">You're all caught up</div>
+        </div>
+      </div>
+      
+      <!-- Theme Toggle -->
+      <button class="header-btn theme-toggle" (click)="toggleTheme()" [attr.aria-label]="isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'">
+        <i class="fas" [class.fa-sun]="!isDarkMode" [class.fa-moon]="isDarkMode"></i>
+      </button>
+      
+      <!-- User Menu -->
+      <div class="user-menu-container">
+        <div class="user-menu" (click)="toggleUserMenu()" [class.active]="showUserMenu">
+          <div class="user-avatar">
+            <img *ngIf="currentUserAvatar" [src]="currentUserAvatar" alt="User Avatar" class="avatar-image">
+            <i *ngIf="!currentUserAvatar" class="fas fa-user"></i>
+          </div>
+          <span class="user-name">{{ currentUserName || 'User' }}</span>
+          <i class="fas fa-chevron-down dropdown-icon"></i>
+        </div>
+        <div class="dropdown-panel user-panel" *ngIf="showUserMenu">
+          <div class="user-info-header">
+            <div class="user-info-avatar">
+              <img *ngIf="currentUserAvatar" [src]="currentUserAvatar" alt="User Avatar" class="avatar-image">
+              <i *ngIf="!currentUserAvatar" class="fas fa-user"></i>
+            </div>
+            <div class="user-info-details">
+              <div class="user-info-name">{{ currentUserName || 'User' }}</div>
+              <div class="user-info-email" *ngIf="currentUserEmail">{{ currentUserEmail }}</div>
+            </div>
+          </div>
+          
+          <div class="dropdown-divider"></div>
+          
+          <div class="dropdown-section">
+            <button class="dropdown-item" (click)="goToProfile()">
+              <i class="fas fa-user-circle"></i>
+              <span>My Profile</span>
+            </button>
+            <button class="dropdown-item" (click)="goToSettings()">
+              <i class="fas fa-cog"></i>
+              <span>Settings</span>
+            </button>
+          </div>
+          
+          <div class="dropdown-divider"></div>
+          
+          <div class="dropdown-section">
+            <button class="dropdown-item logout-item" (click)="onSignOut()">
+              <i class="fas fa-sign-out-alt"></i>
+              <span>Sign out</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>

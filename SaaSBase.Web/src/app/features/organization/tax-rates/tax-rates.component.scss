@@ -1,0 +1,96 @@
+// Tax Rates Component - Minimal styles (global styles auto-applied)
+.tax-rates-page {
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+
+  // Remove left/right padding from page-header and search-filter-section
+  .page-header {
+    padding-top: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-bottom: 0 !important;
+
+    // Override common CSS: Make header-stats and buttons appear in same row
+    .header-main {
+      .header-actions {
+        display: flex !important;
+        align-items: center;
+        gap: 0.625rem;
+        grid-column: 2;
+        grid-row: 1;
+        justify-content: flex-end;
+        flex-shrink: 0;
+
+        .header-stats {
+          display: flex;
+          gap: 0.625rem;
+          align-items: center;
+          grid-column: unset !important;
+          grid-row: unset !important;
+          width: auto;
+          margin-top: 0;
+        }
+
+        .btn,
+        .btn-primary,
+        .btn-outline {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          grid-column: unset !important;
+          grid-row: unset !important;
+        }
+
+        @media (max-width: 767px) {
+          grid-column: 1;
+          grid-row: 2;
+          flex-wrap: wrap;
+          justify-content: flex-start;
+          width: 100%;
+
+          .header-stats {
+            width: 100%;
+            justify-content: flex-start;
+          }
+        }
+      }
+    }
+  }
+
+  .pagination-section {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .search-filter-section {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+    .data-display {
+    overflow: visible !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  // Mobile card title font size adjustments
+  .mobile-card-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+
+    .tax-rate-details {
+      .tax-rate-name {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #212529;
+        margin-bottom: 0.25rem;
+      }
+
+      .tax-rate-rate {
+        font-size: 0.75rem;
+        color: #6c757d;
+        font-weight: 400;
+      }
+    }
+  }
+}

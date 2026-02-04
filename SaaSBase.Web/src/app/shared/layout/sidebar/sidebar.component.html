@@ -1,0 +1,76 @@
+<aside class="sidebar" [class.collapsed]="isCollapsed" [class.mobile-open]="mobileOpen">
+  <div class="sidebar-content">
+    <!-- Mobile Header with Close Button -->
+    <div class="sidebar-mobile-header">
+      <span class="mobile-title">Menu</span>
+      <button class="close-btn" aria-label="Close menu" (click)="onToggleSidebar()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <!-- Navigation Menu -->
+    <nav class="sidebar-nav">
+      <ng-container *ngFor="let section of menu">
+        <div class="nav-section">
+          <div class="nav-section-title">{{ section.title }}</div>
+          <ul class="nav-list">
+            <li class="nav-item" *ngFor="let item of section.items">
+              <div class="nav-link-container" (mouseenter)="onItemEnter(item)" (mouseleave)="onItemLeave()">
+                <a *ngIf="!item.submenu; else parentMenuLink"
+                   [routerLink]="item.route" 
+                   routerLinkActive="active" 
+                   [routerLinkActiveOptions]="{exact: false}"
+                   class="nav-link" 
+                   (click)="onItemClick($event, item)" 
+                   [attr.title]="isCollapsed ? item.label : null"
+                   [class.active]="isMenuItemActive(item)">
+                  <i [class]="item.icon"></i>
+                  <span class="nav-text">{{ item.label }}</span>
+                </a>
+                <ng-template #parentMenuLink>
+                  <a class="nav-link has-submenu no-navigation"
+                     (click)="onItemClick($event, item)" 
+                     [attr.title]="isCollapsed ? item.label : null"
+                     [class.active]="isMenuItemActive(item)">
+                    <i [class]="item.icon"></i>
+                    <span class="nav-text">{{ item.label }}</span>
+                    <i class="fas fa-chevron-down nav-arrow" [class.rotated]="item.expanded"></i>
+                  </a>
+                </ng-template>
+                <ul *ngIf="item.submenu && item.expanded" class="submenu">
+                  <li class="submenu-item" *ngFor="let subItem of item.submenu">
+                    <a [routerLink]="subItem.route" 
+                       [routerLinkActive]="'active'" 
+                       [routerLinkActiveOptions]="{exact: false}"
+                       class="submenu-link" 
+                       (click)="onSubmenuClick($event, subItem.route)"
+                       [class.active]="isSubmenuItemActive(subItem.route)">
+                      <i [class]="subItem.icon"></i>
+                      <span class="submenu-text">{{ subItem.label }}</span>
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </ng-container>
+    </nav>
+    <!-- Side tray for collapsed mode -->
+    <div class="submenu-tray" *ngIf="isCollapsed && trayItem && trayItem.submenu">
+      <div class="tray-header">{{ trayItem.label }}</div>
+      <ul class="tray-list">
+        <li class="tray-item" *ngFor="let subItem of trayItem.submenu">
+          <a [routerLink]="subItem.route" 
+             [routerLinkActive]="'active'" 
+             [routerLinkActiveOptions]="{exact: false}"
+             class="tray-link" 
+             (click)="onTrayItemClick($event, subItem.route)"
+             [class.active]="isSubmenuItemActive(subItem.route)">
+            <i [class]="subItem.icon"></i>
+            <span class="tray-text">{{ subItem.label }}</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</aside>

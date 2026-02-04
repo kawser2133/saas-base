@@ -1,0 +1,196 @@
+<div class="dashboard">
+  <!-- Dashboard Header -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <div class="title-section">
+        <h1 class="dashboard-title">
+          <i class="fas fa-building"></i>
+          Company Dashboard
+        </h1>
+        <p class="dashboard-subtitle">Overview of your organization's activity and performance</p>
+      </div>
+      <div class="header-actions">
+        <a routerLink="/organizations" class="btn btn-primary">
+          <i class="fas fa-building"></i>
+          Manage Company
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <div class="kpi-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="kpi-title">Total Users</div>
+      </div>
+      <div class="kpi-value">{{ stats.totalUsers }}</div>
+      <div class="kpi-trend">
+        <i class="fas fa-check-circle"></i>
+        <span>{{ stats.activeUsers }} active</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <div class="kpi-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <div class="kpi-title">Active Sessions</div>
+      </div>
+      <div class="kpi-value">{{ stats.activeSessions }}</div>
+      <div class="kpi-trend">
+        <i class="fas fa-info-circle"></i>
+        <span>Current user sessions</span>
+      </div>
+    </div>
+    
+  </div>
+
+  <!-- Charts Section -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="card-header">
+        <div class="card-title">
+          <h3>
+            <i class="fas fa-chart-line"></i>
+            User Growth Trend
+          </h3>
+          <p>Total users registered over the last 12 months</p>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas baseChart
+                [data]="userGrowthChartData"
+                [options]="userGrowthChartOptions"
+                type="line">
+        </canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="card-header">
+        <div class="card-title">
+          <h3>
+            <i class="fas fa-chart-pie"></i>
+            User Activity
+          </h3>
+          <p>Active vs inactive users distribution</p>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas baseChart
+                [data]="userActivityChartData"
+                [options]="userActivityChartOptions"
+                type="pie">
+        </canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Grid -->
+  <div class="dashboard-grid">
+    <!-- Quick Access Card -->
+    <div class="quick-access-card">
+      <div class="card-header">
+        <div class="card-title">
+          <h3>Quick Access</h3>
+          <p>Get started with common tasks</p>
+        </div>
+      </div>
+      <div class="quick-access-list">
+        <a routerLink="/auth/users" class="quick-access-item">
+          <div class="quick-access-icon">
+            <i class="fas fa-user-plus"></i>
+          </div>
+          <div class="quick-access-content">
+            <div class="quick-access-title">Manage Users</div>
+            <div class="quick-access-description">Add and manage user accounts</div>
+          </div>
+          <i class="fas fa-chevron-right"></i>
+        </a>
+
+        <a routerLink="/master-data/departments" class="quick-access-item">
+          <div class="quick-access-icon">
+            <i class="fas fa-sitemap"></i>
+          </div>
+          <div class="quick-access-content">
+            <div class="quick-access-title">Departments</div>
+            <div class="quick-access-description">Manage departments</div>
+          </div>
+          <i class="fas fa-chevron-right"></i>
+        </a>
+
+        <a routerLink="/master-data/positions" class="quick-access-item">
+          <div class="quick-access-icon">
+            <i class="fas fa-briefcase"></i>
+          </div>
+          <div class="quick-access-content">
+            <div class="quick-access-title">Positions</div>
+            <div class="quick-access-description">Manage positions</div>
+          </div>
+          <i class="fas fa-chevron-right"></i>
+        </a>
+
+        <a routerLink="/auth/roles" class="quick-access-item">
+          <div class="quick-access-icon">
+            <i class="fas fa-user-shield"></i>
+          </div>
+          <div class="quick-access-content">
+            <div class="quick-access-title">Roles & Permissions</div>
+            <div class="quick-access-description">Manage access controls</div>
+          </div>
+          <i class="fas fa-chevron-right"></i>
+        </a>
+
+        <a routerLink="/profile" class="quick-access-item">
+          <div class="quick-access-icon">
+            <i class="fas fa-user-circle"></i>
+          </div>
+          <div class="quick-access-content">
+            <div class="quick-access-title">My Profile</div>
+            <div class="quick-access-description">Update your account settings</div>
+          </div>
+          <i class="fas fa-chevron-right"></i>
+        </a>
+      </div>
+    </div>
+
+    <!-- Recent Activity Feed -->
+    <div class="activity-card">
+      <div class="card-header">
+        <div class="card-title">
+          <h3>Recent Activity</h3>
+          <p>Latest system events</p>
+        </div>
+      </div>
+      <div class="activity-list">
+        <div class="activity-item info">
+          <div class="activity-icon">
+            <i class="fas fa-info-circle"></i>
+          </div>
+          <div class="activity-content">
+            <div class="activity-title">Welcome to SaaSBase</div>
+            <div class="activity-description">Your SaaS foundation platform is ready</div>
+            <div class="activity-time">Just now</div>
+          </div>
+        </div>
+
+        <div class="activity-item success">
+          <div class="activity-icon">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <div class="activity-content">
+            <div class="activity-title">System Initialized</div>
+            <div class="activity-description">All modules are operational</div>
+            <div class="activity-time">Recently</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

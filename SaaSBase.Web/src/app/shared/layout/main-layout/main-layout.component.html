@@ -1,0 +1,42 @@
+<div class="main-layout">
+  <!-- Organization Inactive Warning Banner -->
+  <div class="org-inactive-banner" *ngIf="organizationInactive">
+    <div class="banner-content">
+      <div class="banner-icon">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <div class="banner-text">
+        <strong>Organization Inactive</strong>
+        <span>Your organization account is currently inactive. Some features may be limited. Please contact your administrator.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <app-header (toggleSidebar)="toggleSidebar()"></app-header>
+  
+  <div class="layout-container">
+    <!-- Sidebar -->
+    <app-sidebar 
+      [isCollapsed]="sidebarCollapsed"
+      [mobileOpen]="mobileSidebarOpen"
+      (toggleSidebar)="toggleSidebar()">
+    </app-sidebar>
+    
+    <!-- Main Content Area -->
+    <div class="main-content" [class.sidebar-collapsed]="sidebarCollapsed">
+      <div class="content-wrapper">
+        <router-outlet></router-outlet>
+      </div>
+      
+      <!-- Footer -->
+      <app-footer></app-footer>
+    </div>
+
+    <!-- Mobile overlay for sidebar -->
+    <div class="backdrop" *ngIf="mobileSidebarOpen" (click)="toggleSidebar()"></div>
+  </div>
+
+  <!-- Global Notifications -->
+  <app-notification-container></app-notification-container>
+</div>

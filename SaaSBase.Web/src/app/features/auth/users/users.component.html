@@ -1,0 +1,2004 @@
+<div class="users-page" (click)="onMainPageClick($event)">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-surface">
+      <app-breadcrumb></app-breadcrumb>
+
+      <div class="header-main">
+        <div class="title-block">
+          <div class="title-content">
+            <h1 class="page-title">User Management</h1>
+            <p class="page-description">Manage system users, roles, and access permissions</p>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <div class="header-stats">
+            <div class="stat-card">
+              <div class="stat-icon">
+                <i class="fas fa-users"></i>
+              </div>
+              <div class="stat-content">
+                <span class="stat-value">{{ statistics.total }}</span>
+                <span class="stat-label">Total</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon stat-icon-success">
+                <i class="fas fa-check-circle"></i>
+              </div>
+              <div class="stat-content">
+                <span class="stat-value">{{ statistics.active }}</span>
+                <span class="stat-label">Active</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon stat-icon-warning">
+                <i class="fas fa-times-circle"></i>
+              </div>
+              <div class="stat-content">
+                <span class="stat-value">{{ statistics.inactive }}</span>
+                <span class="stat-label">Inactive</span>
+              </div>
+            </div>
+          </div>
+          <button *hasPermission="'Users.Create'" class="btn btn-primary" type="button" (click)="openAddDialog()">
+            <i class="fas fa-plus"></i>
+            <span>Add New User</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Search and Filter Bar -->
+  <div class="search-filter-section" (click)="onMainPageClick($event)">
+    <div class="search-filter-content">
+      <div class="search-section">
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input type="text" [(ngModel)]="searchQuery" (input)="onSearch()" (focus)="onFormFieldFocus()"
+            placeholder="Search by email, name, department, or job title..." class="search-input">
+          <span class="search-count" *ngIf="searchQuery">{{ totalItems }} results</span>
+        </div>
+      </div>
+
+      <div class="filter-actions">
+        <button class="btn btn-outline" type="button" (click)="refreshData()" [disabled]="isLoading"
+          title="Refresh data">
+          <i class="fas" [class.fa-sync-alt]="!isLoading" [class.fa-spinner]="isLoading"
+            [class.fa-spin]="isLoading"></i>
+        </button>
+
+        <button class="btn btn-filter" [class.btn-filter-active]="showFilters" (click)="showFilters = !showFilters" title="Filters">
+          <i class="fas fa-filter"></i>
+          <span class="filter-badge" *ngIf="activeFilterCount > 0">{{ activeFilterCount }}</span>
+        </button>
+
+        <button *hasPermission="'Users.Import'" class="btn btn-outline" type="button" (click)="openImportDialog()" title="Import">
+          <i class="fas fa-file-import"></i>
+        </button>
+
+        <div class="dropdown" *hasPermission="'Users.Export'">
+          <button class="btn btn-outline dropdown-toggle" type="button" (click)="toggleExportDropdown()" title="Export">
+            <i class="fas fa-download"></i>
+            <span class="filter-badge" *ngIf="selectedItems.size > 0" >{{ selectedItems.size }}</span>
+          </button>
+          <div class="dropdown-menu" *ngIf="exportDropdownOpen">
+            <a class="dropdown-item" (click)="startAsyncExport('excel'); exportDropdownOpen = false">
+              <i class="fas fa-file-excel text-success"></i> Export as Excel
+            </a>
+            <a class="dropdown-item" (click)="startAsyncExport('csv'); exportDropdownOpen = false">
+              <i class="fas fa-file-csv text-info"></i> Export as CSV
+            </a>
+            <a class="dropdown-item" (click)="startAsyncExport('pdf'); exportDropdownOpen = false">
+              <i class="fas fa-file-pdf text-danger"></i> Export as PDF
+            </a>
+            <a class="dropdown-item" (click)="startAsyncExport('json'); exportDropdownOpen = false">
+              <i class="fas fa-file-code text-primary"></i> Export as JSON
+            </a>
+          </div>
+        </div>
+
+        <button class="btn btn-outline" type="button" (click)="openImportHistoryDialog()" title="History">
+          <i class="fas fa-history"></i>
+        </button>
+
+        <ng-container *hasPermission="'Users.Create'">
+          <button *ngIf="selectedItems.size > 0" class="btn btn-outline" (click)="cloneSelected()" title="Clone">
+            <i class="fas fa-copy"></i>
+            <span class="filter-badge">{{ selectedItems.size }}</span>
+          </button>
+        </ng-container>
+        <ng-container *hasPermission="'Users.Delete'">
+          <button *ngIf="selectedItems.size > 0" class="btn btn-outline" (click)="openDeleteDialog(getSelectedItems())" title="Delete">
+            <i class="fas fa-trash"></i>
+            <span class="filter-badge">{{ selectedItems.size }}</span>
+          </button>
+        </ng-container>
+      </div>
+    </div>
+
+    <!-- Filter Panel -->
+    <div class="filter-panel" *ngIf="showFilters">
+      <div class="filter-panel-header">
+        <div class="filter-title-section">
+          <i class="fas fa-sliders-h"></i>
+          <h3>Advanced Filters</h3>
+          <span class="filter-count" *ngIf="activeFilterCount > 0">{{ activeFilterCount }} active</span>
+        </div>
+        <button class="btn btn-sm btn-clear" (click)="clearFilters()" *ngIf="activeFilterCount > 0">
+          <i class="fas fa-undo"></i>
+          <span>Reset Filters</span>
+        </button>
+      </div>
+
+      <div class="filter-grid">
+        <div class="filter-group">
+          <label>Department</label>
+          <div class="searchable-dropdown">
+            <div class="dropdown-trigger"
+              (click)="toggleSearchableDropdown('filter-department'); $event.stopPropagation()">
+              <span class="dropdown-value">{{ getFilterDisplayValue('department') || 'All Departments' }}</span>
+              <i 
+                *ngIf="hasDropdownValue('filter-department')"
+                class="fas fa-times clear-icon"
+                (click)="clearDropdownValue('filter-department', $event)"
+                title="Clear selection"
+              ></i>
+              <i class="dropdown-icon"></i>
+            </div>
+
+            <div class="dropdown-menu" *ngIf="dropdownStates['filter-department']?.isOpen">
+              <div class="search-input-container">
+                <input type="text" class="search-input" placeholder="Search departments..."
+                  [value]="dropdownStates['filter-department'].searchTerm"
+                  (input)="onSearchInput('filter-department', $event)">
+                <i class="search-icon"></i>
+              </div>
+
+              <div class="dropdown-options">
+                <div class="dropdown-option" [class.selected]="!filterFormData.department"
+                  (click)="selectFilterOption('department', '')">
+                  All Departments
+                  <i *ngIf="!filterFormData.department" class="fas fa-check selected-icon"></i>
+                </div>
+                <div *ngFor="let option of dropdownStates['filter-department']?.filteredOptions" class="dropdown-option"
+                  [class.selected]="getFilterDisplayValue('department') === option"
+                  (click)="selectFilterOption('department', option)">
+                  {{ option }}
+                  <i *ngIf="getFilterDisplayValue('department') === option" class="fas fa-check selected-icon"></i>
+                </div>
+                <div *ngIf="dropdownStates['filter-department']?.filteredOptions?.length === 0" class="no-results">
+                  No departments found
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <label>Job Title</label>
+          <div class="searchable-dropdown">
+            <div class="dropdown-trigger"
+              (click)="toggleSearchableDropdown('filter-jobTitle'); $event.stopPropagation()">
+              <span class="dropdown-value">{{ getFilterDisplayValue('jobTitle') || 'All Job Titles' }}</span>
+              <i 
+                *ngIf="hasDropdownValue('filter-jobTitle')"
+                class="fas fa-times clear-icon"
+                (click)="clearDropdownValue('filter-jobTitle', $event)"
+                title="Clear selection"
+              ></i>
+              <i class="dropdown-icon"></i>
+            </div>
+
+            <div class="dropdown-menu" *ngIf="dropdownStates['filter-jobTitle']?.isOpen">
+              <div class="search-input-container">
+                <input type="text" class="search-input" placeholder="Search job titles..."
+                  [value]="dropdownStates['filter-jobTitle'].searchTerm"
+                  (input)="onSearchInput('filter-jobTitle', $event)">
+                <i class="search-icon"></i>
+              </div>
+
+              <div class="dropdown-options">
+                <div class="dropdown-option" [class.selected]="!filterFormData.jobTitle"
+                  (click)="selectFilterOption('jobTitle', '')">
+                  All Job Titles
+                  <i *ngIf="!filterFormData.jobTitle" class="fas fa-check selected-icon"></i>
+                </div>
+                <div *ngFor="let option of dropdownStates['filter-jobTitle']?.filteredOptions" class="dropdown-option"
+                  [class.selected]="getFilterDisplayValue('jobTitle') === option"
+                  (click)="selectFilterOption('jobTitle', option)">
+                  {{ option }}
+                  <i *ngIf="getFilterDisplayValue('jobTitle') === option" class="fas fa-check selected-icon"></i>
+                </div>
+                <div *ngIf="dropdownStates['filter-jobTitle']?.filteredOptions?.length === 0" class="no-results">
+                  No job titles found
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <label>Location</label>
+          <div class="searchable-dropdown">
+            <div class="dropdown-trigger"
+              (click)="toggleSearchableDropdown('filter-location'); $event.stopPropagation()">
+              <span class="dropdown-value">{{ getFilterDisplayValue('location') || 'All Locations' }}</span>
+              <i 
+                *ngIf="hasDropdownValue('filter-location')"
+                class="fas fa-times clear-icon"
+                (click)="clearDropdownValue('filter-location', $event)"
+                title="Clear selection"
+              ></i>
+              <i class="dropdown-icon"></i>
+            </div>
+
+            <div class="dropdown-menu" *ngIf="dropdownStates['filter-location']?.isOpen">
+              <div class="search-input-container">
+                <input type="text" class="search-input" placeholder="Search locations..."
+                  [value]="dropdownStates['filter-location'].searchTerm"
+                  (input)="onSearchInput('filter-location', $event)">
+                <i class="search-icon"></i>
+              </div>
+
+              <div class="dropdown-options">
+                <div class="dropdown-option" [class.selected]="!filterFormData.location"
+                  (click)="selectFilterOption('location', '')">
+                  All Locations
+                  <i *ngIf="!filterFormData.location" class="fas fa-check selected-icon"></i>
+                </div>
+                <div *ngFor="let option of dropdownStates['filter-location']?.filteredOptions" class="dropdown-option"
+                  [class.selected]="getFilterDisplayValue('location') === option"
+                  (click)="selectFilterOption('location', option)">
+                  {{ option }}
+                  <i *ngIf="getFilterDisplayValue('location') === option" class="fas fa-check selected-icon"></i>
+                </div>
+                <div *ngIf="dropdownStates['filter-location']?.filteredOptions?.length === 0" class="no-results">
+                  No locations found
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <label>Role</label>
+          <div class="searchable-dropdown">
+            <div class="dropdown-trigger" (click)="toggleSearchableDropdown('filter-roleId'); $event.stopPropagation()">
+              <span class="dropdown-value">{{ getFilterDisplayValue('roleId') || 'All Roles' }}</span>
+              <i 
+                *ngIf="hasDropdownValue('filter-roleId')"
+                class="fas fa-times clear-icon"
+                (click)="clearDropdownValue('filter-roleId', $event)"
+                title="Clear selection"
+              ></i>
+              <i class="dropdown-icon"></i>
+            </div>
+
+            <div class="dropdown-menu" *ngIf="dropdownStates['filter-roleId']?.isOpen">
+              <div class="search-input-container">
+                <input type="text" class="search-input" placeholder="Search roles..."
+                  [value]="dropdownStates['filter-roleId'].searchTerm" (input)="onSearchInput('filter-roleId', $event)">
+                <i class="search-icon"></i>
+              </div>
+
+              <div class="dropdown-options">
+                <div class="dropdown-option" [class.selected]="!filterFormData.roleId"
+                  (click)="selectFilterOption('roleId', '')">
+                  All Roles
+                  <i *ngIf="!filterFormData.roleId" class="fas fa-check selected-icon"></i>
+                </div>
+                <div *ngFor="let roleId of dropdownStates['filter-roleId']?.filteredOptions" class="dropdown-option"
+                  [class.selected]="filterFormData.roleId === roleId" (click)="selectFilterOption('roleId', roleId)">
+                  {{ getRoleName(roleId) }}
+                  <i *ngIf="filterFormData.roleId === roleId" class="fas fa-check selected-icon"></i>
+                </div>
+                <div *ngIf="dropdownStates['filter-roleId']?.filteredOptions?.length === 0" class="no-results">
+                  No roles found
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-group" *ngIf="isSystemAdmin">
+          <label>Company</label>
+          <div class="searchable-dropdown">
+            <div class="dropdown-trigger"
+              (click)="toggleSearchableDropdown('filter-organizationId'); $event.stopPropagation()">
+              <span class="dropdown-value">{{ getFilterDisplayValue('organizationId') || 'All Companies' }}</span>
+              <i 
+                *ngIf="hasDropdownValue('filter-organizationId')"
+                class="fas fa-times clear-icon"
+                (click)="clearDropdownValue('filter-organizationId', $event)"
+                title="Clear selection"
+              ></i>
+              <i class="dropdown-icon"></i>
+            </div>
+
+            <div class="dropdown-menu" *ngIf="dropdownStates['filter-organizationId']?.isOpen">
+              <div class="search-input-container">
+                <input type="text" class="search-input" placeholder="Search companies..."
+                  [value]="dropdownStates['filter-organizationId'].searchTerm"
+                  (input)="onSearchInput('filter-organizationId', $event)">
+                <i class="search-icon"></i>
+              </div>
+
+              <div class="dropdown-options">
+                <div class="dropdown-option" [class.selected]="!filterFormData.organizationId"
+                  (click)="selectFilterOption('organizationId', '')">
+                  All Companies
+                  <i *ngIf="!filterFormData.organizationId" class="fas fa-check selected-icon"></i>
+                </div>
+                <div *ngFor="let org of dropdownStates['filter-organizationId']?.filteredOptions" class="dropdown-option"
+                  [class.selected]="filterFormData.organizationId === org.id"
+                  (click)="selectFilterOption('organizationId', org.id)">
+                  {{ org.name }}
+                  <i *ngIf="filterFormData.organizationId === org.id" class="fas fa-check selected-icon"></i>
+                </div>
+                <div *ngIf="dropdownStates['filter-organizationId']?.filteredOptions?.length === 0" class="no-results">
+                  No companies found
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <label>Status</label>
+          <div class="searchable-dropdown">
+            <div class="dropdown-trigger" (click)="toggleSearchableDropdown('filter-status'); $event.stopPropagation()">
+              <span class="dropdown-value">
+                {{ filterFormData.status === 'true' ? 'Active' : filterFormData.status === 'false' ? 'Inactive' : 'All
+                Statuses' }}
+              </span>
+              <i 
+                *ngIf="hasDropdownValue('filter-status')"
+                class="fas fa-times clear-icon"
+                (click)="clearDropdownValue('filter-status', $event)"
+                title="Clear selection"
+              ></i>
+              <i class="dropdown-icon"></i>
+            </div>
+
+            <div class="dropdown-menu" *ngIf="dropdownStates['filter-status']?.isOpen">
+              <div class="dropdown-options">
+                <div class="dropdown-option" [class.selected]="!filterFormData.status"
+                  (click)="selectFilterOption('status', '')">
+                  All Statuses
+                  <i *ngIf="!filterFormData.status" class="fas fa-check selected-icon"></i>
+                </div>
+                <div class="dropdown-option" [class.selected]="filterFormData.status === 'true'"
+                  (click)="selectFilterOption('status', 'true')">
+                  Active
+                  <i *ngIf="filterFormData.status === 'true'" class="fas fa-check selected-icon"></i>
+                </div>
+                <div class="dropdown-option" [class.selected]="filterFormData.status === 'false'"
+                  (click)="selectFilterOption('status', 'false')">
+                  Inactive
+                  <i *ngIf="filterFormData.status === 'false'" class="fas fa-check selected-icon"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <label>Email Verification</label>
+          <div class="searchable-dropdown">
+            <div class="dropdown-trigger"
+              (click)="toggleSearchableDropdown('filter-verification'); $event.stopPropagation()">
+              <span class="dropdown-value">
+                {{ filterFormData.verification === 'true' ? 'Verified' : filterFormData.verification === 'false' ?
+                'Unverified' : 'All' }}
+              </span>
+              <i 
+                *ngIf="hasDropdownValue('filter-verification')"
+                class="fas fa-times clear-icon"
+                (click)="clearDropdownValue('filter-verification', $event)"
+                title="Clear selection"
+              ></i>
+              <i class="dropdown-icon"></i>
+            </div>
+
+            <div class="dropdown-menu" *ngIf="dropdownStates['filter-verification']?.isOpen">
+              <div class="dropdown-options">
+                <div class="dropdown-option" [class.selected]="!filterFormData.verification"
+                  (click)="selectFilterOption('verification', '')">
+                  All
+                  <i *ngIf="!filterFormData.verification" class="fas fa-check selected-icon"></i>
+                </div>
+                <div class="dropdown-option" [class.selected]="filterFormData.verification === 'true'"
+                  (click)="selectFilterOption('verification', 'true')">
+                  Verified
+                  <i *ngIf="filterFormData.verification === 'true'" class="fas fa-check selected-icon"></i>
+                </div>
+                <div class="dropdown-option" [class.selected]="filterFormData.verification === 'false'"
+                  (click)="selectFilterOption('verification', 'false')">
+                  Unverified
+                  <i *ngIf="filterFormData.verification === 'false'" class="fas fa-check selected-icon"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <label>Created From</label>
+          <input type="date" class="form-control" [(ngModel)]="filterFormData.createdFrom" name="createdFrom"
+            (change)="filters.createdFrom = filterFormData.createdFrom; loadData()">
+        </div>
+
+        <div class="filter-group">
+          <label>Created To</label>
+          <input type="date" class="form-control" [(ngModel)]="filterFormData.createdTo" name="createdTo"
+            (change)="filters.createdTo = filterFormData.createdTo; loadData()">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Display -->
+  <div class="data-display" (click)="onMainPageClick($event)">
+    <!-- Desktop Table View -->
+    <div class="table-container" *ngIf="!isMobile">
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="checkbox-column">
+                <input type="checkbox" [checked]="isAllSelected()" (change)="masterToggle()" class="form-check-input">
+              </th>
+              <th class="sortable" (click)="sortData('email')">
+                User Info
+                <i class="fas fa-sort" *ngIf="sortField !== 'email'"></i>
+                <i class="fas fa-sort-up" *ngIf="sortField === 'email' && sortDirection === 'asc'"></i>
+                <i class="fas fa-sort-down" *ngIf="sortField === 'email' && sortDirection === 'desc'"></i>
+              </th>
+              <th class="sortable" (click)="sortData('status')">
+                Status
+                <i class="fas fa-sort" *ngIf="sortField !== 'status'"></i>
+                <i class="fas fa-sort-up" *ngIf="sortField === 'status' && sortDirection === 'asc'"></i>
+                <i class="fas fa-sort-down" *ngIf="sortField === 'status' && sortDirection === 'desc'"></i>
+              </th>
+              <th class="sortable" (click)="sortData('isEmailVerified')">
+                Email Verified
+                <i class="fas fa-sort" *ngIf="sortField !== 'isEmailVerified'"></i>
+                <i class="fas fa-sort-up" *ngIf="sortField === 'isEmailVerified' && sortDirection === 'asc'"></i>
+                <i class="fas fa-sort-down" *ngIf="sortField === 'isEmailVerified' && sortDirection === 'desc'"></i>
+              </th>
+              <th>Role</th>
+              <th class="sortable" *ngIf="isSystemAdmin" (click)="sortData('organizationName')">
+                Company
+                <i class="fas fa-sort" *ngIf="sortField !== 'organizationName'"></i>
+                <i class="fas fa-sort-up" *ngIf="sortField === 'organizationName' && sortDirection === 'asc'"></i>
+                <i class="fas fa-sort-down" *ngIf="sortField === 'organizationName' && sortDirection === 'desc'"></i>
+              </th>
+              <th class="sortable" (click)="sortData('lastLoginAt')">
+                Last Login
+                <i class="fas fa-sort" *ngIf="sortField !== 'lastLoginAt'"></i>
+                <i class="fas fa-sort-up" *ngIf="sortField === 'lastLoginAt' && sortDirection === 'asc'"></i>
+                <i class="fas fa-sort-down" *ngIf="sortField === 'lastLoginAt' && sortDirection === 'desc'"></i>
+              </th>
+              <th class="sortable" (click)="sortData('createdAtUtc')">
+                Created Date
+                <i class="fas fa-sort" *ngIf="sortField !== 'createdAtUtc'"></i>
+                <i class="fas fa-sort-up" *ngIf="sortField === 'createdAtUtc' && sortDirection === 'asc'"></i>
+                <i class="fas fa-sort-down" *ngIf="sortField === 'createdAtUtc' && sortDirection === 'desc'"></i>
+              </th>
+              <th class="actions-column">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="isLoading" class="loading-row">
+              <td [attr.colspan]="isSystemAdmin ? '9' : '8'" class="loading-cell">
+                <div class="loading-spinner">
+                  <i class="fas fa-spinner fa-spin"></i>
+                  <span>Loading users...</span>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="!isLoading && paginatedData.length === 0" class="empty-row">
+              <td [attr.colspan]="isSystemAdmin ? '9' : '8'" class="empty-cell">
+                <div class="empty-state">
+                  <i class="fas fa-users"></i>
+                  <h3>No users found</h3>
+                  <p>Create your first user to get started</p>
+                </div>
+              </td>
+            </tr>
+            <tr *ngFor="let user of paginatedData" class="data-row" [hidden]="isLoading">
+              <td class="checkbox-column">
+                <input type="checkbox" [checked]="selectedItems.has(user.id)" (change)="toggleItemSelection(user.id)"
+                  class="form-check-input">
+              </td>
+              <td class="item-email">
+                <div class="user-info">
+                  <div class="user-avatar">
+                    <img *ngIf="getUserAvatarUrl(user)" [src]="getUserAvatarUrl(user)" [alt]="user.fullName" class="avatar-image">
+                    <div *ngIf="!getUserAvatarUrl(user)" class="avatar-placeholder">
+                      {{ getUserInitials(user) }}
+                    </div>
+                  </div>
+                  <div class="user-details">
+                    <div class="user-name">{{ user.fullName }}</div>
+                    <div class="user-email">{{ user.email }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="status">
+                <div class="status-container">
+                  <div class="status-indicator" [class]="getStatusClass(user.isActive)">
+                    <i class="fas" [class]="getStatusIcon(user.isActive)"></i>
+                  </div>
+                  <span class="status-text" [class]="getStatusClass(user.isActive)">
+                    {{ user.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                </div>
+              </td>
+              <td class="email-verified">
+                <span class="status-badge" [ngClass]="getBadgeClass(user.isEmailVerified)">
+                  {{ user.isEmailVerified ? 'Verified' : 'Unverified' }}
+                </span>
+              </td>
+              <td class="role">
+                <div class="role-badges-container" *ngIf="user.roleDetails && user.roleDetails.length > 0">
+                  <span class="role-badge" 
+                        *ngFor="let roleDetail of user.roleDetails"
+                        [style.background-color]="getRoleColor(roleDetail.color)"
+                        [title]="roleDetail.name">
+                    <i [class]="getRoleIcon(roleDetail.icon)" class="role-badge-icon"></i>
+                    <span class="role-badge-text">{{ roleDetail.name }}</span>
+                  </span>
+                </div>
+                <div class="role-badges-container" *ngIf="!user.roleDetails && user.roleNames && user.roleNames.length > 0">
+                  <span class="role-badge" *ngFor="let roleName of user.roleNames">{{ roleName }}</span>
+                </div>
+                <span class="text-muted" *ngIf="(!user.roleDetails || user.roleDetails.length === 0) && (!user.roleNames || user.roleNames.length === 0)">-</span>
+              </td>
+              <td class="organization" *ngIf="isSystemAdmin">
+                <div class="organization-badge">
+                  <span>{{ user.organizationName || '-' }}</span>
+                </div>
+              </td>
+              <td class="last-login">{{ user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Never' }}</td>
+              <td class="created-date">{{ formatDate(user.createdAtUtc) }}</td>
+              <td class="actions">
+                <div class="action-buttons">
+                  <button class="action-btn action-btn-view" (click)="openViewDialog(user)" title="View">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  <button *hasPermission="'Users.Update'" 
+                    class="action-btn action-btn-edit" 
+                    [class.disabled]="!canEditItem(user)"
+                    [disabled]="!canEditItem(user)"
+                    (click)="openEditDialog(user)" 
+                    [title]="canEditItem(user) ? 'Edit' : 'You can only edit users from your own organization'">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <div class="action-dropdown" [class.active]="user.showDropdown">
+                    <button class="action-btn action-btn-more dropdown-toggle" (click)="toggleDropdown(user, $event)"
+                      title="More Actions">
+                      <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                    <div class="dropdown-menu" *ngIf="user.showDropdown" (click)="$event.stopPropagation()">
+                      <ng-container *hasPermission="'Users.Update'">
+                        <button class="dropdown-item" *ngIf="isUserLocked(user)"
+                          (click)="unlockUser(user); user.showDropdown = false">
+                          <i class="fas fa-unlock"></i>
+                          <span>Unlock Account</span>
+                        </button>
+                        <button class="dropdown-item" *ngIf="!user.isEmailVerified"
+                          (click)="sendEmailVerification(user); user.showDropdown = false">
+                          <i class="fas fa-envelope"></i>
+                          <span>Resend Email Verification</span>
+                        </button>
+                        <button class="dropdown-item" *ngIf="user.isEmailVerified"
+                          (click)="generatePasswordReset(user); user.showDropdown = false">
+                          <i class="fas fa-key"></i>
+                          <span>Reset Password</span>
+                        </button>
+                      </ng-container>
+                      <button class="dropdown-item" (click)="resendInvitation(user); user.showDropdown = false">
+                        <i class="fas fa-paper-plane"></i>
+                        <span>Resend Invitation</span>
+                      </button>
+                      <button *hasPermission="'Users.Update'" class="dropdown-item" (click)="toggleActiveStatus(user); user.showDropdown = false">
+                        <i class="fas" [class.fa-toggle-on]="!user.isActive" [class.fa-toggle-off]="user.isActive"></i>
+                        <span>{{ user.isActive ? 'Deactivate' : 'Activate' }}</span>
+                      </button>
+                      <button *hasPermission="'Users.Create'" class="dropdown-item" (click)="cloneUser(user); user.showDropdown = false">
+                        <i class="fas fa-copy"></i>
+                        <span>Clone</span>
+                      </button>
+                      <button *hasPermission="'Users.Delete'" 
+                        class="dropdown-item delete"
+                        [class.disabled]="!canDeleteItem(user)"
+                        [disabled]="!canDeleteItem(user)"
+                        (click)="openDeleteDialog([user]); user.showDropdown = false"
+                        [title]="canDeleteItem(user) ? 'Delete' : 'You can only delete users from your own organization'">
+                        <i class="fas fa-trash"></i>
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Mobile Card View -->
+    <div class="mobile-cards" *ngIf="isMobile">
+      <div *ngIf="isLoading" class="loading-spinner">
+        <i class="fas fa-spinner fa-spin"></i>
+        <span>Loading users...</span>
+      </div>
+
+      <div *ngIf="!isLoading && paginatedData.length === 0" class="empty-state">
+        <i class="fas fa-users"></i>
+        <h3>No users found</h3>
+        <p>Create your first user to get started</p>
+      </div>
+
+      <div *ngFor="let user of paginatedData" class="mobile-card" [hidden]="isLoading">
+        <div class="mobile-card-header">
+          <div class="mobile-card-checkbox">
+            <input type="checkbox" [checked]="selectedItems.has(user.id)" (change)="toggleItemSelection(user.id)"
+              class="form-check-input">
+          </div>
+          <div class="mobile-card-title">
+            <div class="user-info">
+              <div class="user-avatar">
+                <img *ngIf="getUserAvatarUrl(user)" [src]="getUserAvatarUrl(user)" [alt]="user.fullName" class="avatar-image">
+                <div *ngIf="!getUserAvatarUrl(user)" class="avatar-placeholder">
+                  {{ getUserInitials(user) }}
+                </div>
+              </div>
+              <div class="user-details">
+                <h3>{{ user.fullName }}</h3>
+                <p class="user-email">{{ user.email }}</p>
+              </div>
+            </div>
+          </div>
+          <div class="mobile-card-status">
+            <div class="status-container">
+              <div class="status-indicator" [class]="getStatusClass(user.isActive)">
+                <i class="fas" [class]="getStatusIcon(user.isActive)"></i>
+              </div>
+              <span class="status-text" [class]="getStatusClass(user.isActive)">
+                {{ user.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mobile-card-body">
+          <div class="mobile-card-grid">
+            <div class="mobile-card-field">
+              <span class="field-label">Department:</span>
+              <span class="field-value">{{ user.department || '-' }}</span>
+            </div>
+            <div class="mobile-card-field">
+              <span class="field-label">Job Title:</span>
+              <span class="field-value">{{ user.jobTitle || '-' }}</span>
+            </div>
+            <div class="mobile-card-field">
+              <span class="field-label">Role:</span>
+              <span class="field-value">
+                <div class="role-badges-container" *ngIf="user.roleDetails && user.roleDetails.length > 0">
+                  <span class="role-badge" 
+                        *ngFor="let roleDetail of user.roleDetails"
+                        [style.background-color]="getRoleColor(roleDetail.color)"
+                        [title]="roleDetail.name">
+                    <i [class]="getRoleIcon(roleDetail.icon)" class="role-badge-icon"></i>
+                    <span class="role-badge-text">{{ roleDetail.name }}</span>
+                  </span>
+                </div>
+                <div class="role-badges-container" *ngIf="!user.roleDetails && user.roleNames && user.roleNames.length > 0">
+                  <span class="role-badge" *ngFor="let roleName of user.roleNames">{{ roleName }}</span>
+                </div>
+                <span class="text-muted" *ngIf="(!user.roleDetails || user.roleDetails.length === 0) && (!user.roleNames || user.roleNames.length === 0)">-</span>
+              </span>
+            </div>
+            <div class="mobile-card-field">
+              <span class="field-label">Phone:</span>
+              <span class="field-value">{{ user.phoneNumber || '-' }}</span>
+            </div>
+            <div class="mobile-card-field">
+              <span class="field-label">Email Verified:</span>
+              <span class="status-badge" [ngClass]="getBadgeClass(user.isEmailVerified)">
+                {{ user.isEmailVerified ? 'Verified' : 'Unverified' }}
+              </span>
+            </div>
+            <div class="mobile-card-field">
+              <span class="field-label">Last Login:</span>
+              <span class="field-value">{{ user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Never' }}</span>
+            </div>
+            <div class="mobile-card-field">
+              <span class="field-label">Created:</span>
+              <span class="field-value">{{ formatDate(user.createdAtUtc) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mobile-card-actions">
+          <div class="quick-actions">
+            <button class="icon-btn action-view" (click)="openViewDialog(user)" title="View Details"
+              aria-label="View Details">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button *hasPermission="'Users.Update'" class="icon-btn action-edit" (click)="openEditDialog(user)" title="Edit" aria-label="Edit">
+              <i class="fas fa-edit"></i>
+            </button>
+
+            <!-- Unlock Account Action -->
+            <ng-container *hasPermission="'Users.Update'">
+              <button class="icon-btn action-unlock" *ngIf="isUserLocked(user)" (click)="unlockUser(user)"
+                title="Unlock Account" aria-label="Unlock Account">
+                <i class="fas fa-unlock"></i>
+              </button>
+
+              <!-- Email Verification Action -->
+              <button class="icon-btn action-verify" *ngIf="!user.isEmailVerified" (click)="sendEmailVerification(user)"
+                title="Resend Email Verification" aria-label="Resend Email Verification">
+                <i class="fas fa-envelope"></i>
+              </button>
+
+              <!-- Password Reset Action -->
+              <button class="icon-btn action-reset" *ngIf="user.isEmailVerified" (click)="generatePasswordReset(user)" title="Reset Password"
+                aria-label="Reset Password">
+                <i class="fas fa-key"></i>
+              </button>
+            </ng-container>
+
+            <!-- Resend Invitation Action -->
+            <button class="icon-btn action-invite" (click)="resendInvitation(user)" title="Resend Invitation"
+              aria-label="Resend Invitation">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+
+            <!-- Toggle Active Status Action -->
+            <button *hasPermission="'Users.Update'" class="icon-btn action-toggle" (click)="toggleActiveStatus(user)" title="Toggle Active Status"
+              aria-label="Toggle Active Status" [class.inactive]="!user.isActive">
+              <i class="fas" [class.fa-toggle-on]="!user.isActive" [class.fa-toggle-off]="user.isActive"></i>
+            </button>
+
+            <!-- Delete Action -->
+            <button *hasPermission="'Users.Delete'" class="icon-btn action-delete" (click)="openDeleteDialog([user])" title="Delete"
+              aria-label="Delete">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination-section" *ngIf="totalPages > 1" (click)="onMainPageClick($event)">
+    <div class="pagination-content">
+      <div class="pagination-info">
+        <span class="items-per-page">
+          <label>Rows per page:</label>
+          <select class="form-select" [(ngModel)]="itemsPerPageFormData"
+            (ngModelChange)="selectItemsPerPageOption($event)">
+            <option *ngFor="let option of getOptionsForField('items-per-page')" [value]="option">{{ option }}</option>
+          </select>
+        </span>
+        <span class="pagination-text">
+          Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to
+          {{ Math.min(currentPage * itemsPerPage, totalItems) }} of
+          {{ totalItems }} entries
+        </span>
+      </div>
+
+      <div class="pagination-controls">
+        <button class="btn btn-outline btn-sm" [disabled]="currentPage === 1" (click)="onPageChange(1)">
+          <i class="fas fa-angle-double-left"></i>
+        </button>
+        <button class="btn btn-outline btn-sm" [disabled]="currentPage === 1" (click)="onPageChange(currentPage - 1)">
+          <i class="fas fa-angle-left"></i>
+        </button>
+
+        <span class="page-info">
+          Page {{ currentPage }} of {{ totalPages }}
+        </span>
+
+        <button class="btn btn-outline btn-sm" [disabled]="currentPage === totalPages"
+          (click)="onPageChange(currentPage + 1)">
+          <i class="fas fa-angle-right"></i>
+        </button>
+        <button class="btn btn-outline btn-sm" [disabled]="currentPage === totalPages"
+          (click)="onPageChange(totalPages)">
+          <i class="fas fa-angle-double-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Dialog -->
+  <div class="modal-overlay" *ngIf="showAddEditDialog">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="header-content">
+          <div class="header-icon">
+            <i class="fas" [class.fa-plus]="dialogMode === 'add'" [class.fa-edit]="dialogMode === 'edit'"></i>
+          </div>
+          <div class="header-text">
+            <h2>{{ dialogMode === 'add' ? 'Add New User' : 'Edit User' }}</h2>
+            <p class="modal-subtitle">{{ dialogMode === 'add' ? 'Create a new user account' : 'Modify existing user
+              details' }}</p>
+          </div>
+        </div>
+        <button class="btn-close" (click)="closeDialogs()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body" (click)="onModalBodyClick($event)">
+        <form (ngSubmit)="saveItem()" class="modern-form">
+          <div class="form-sections">
+            <div class="form-section">
+              <div class="section-title-container basic-info">
+                <div class="section-icon-wrapper">
+                  <i class="fas fa-user"></i>
+                </div>
+                <div class="section-title-content">
+                  <h3 class="section-title">Basic Information</h3>
+                </div>
+                <div class="section-decoration"></div>
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="email" class="form-label">
+                    Email <span class="required">*</span>
+                  </label>
+                  <div class="input-wrapper">
+                    <input id="email" type="email" [(ngModel)]="formData.email" name="email"
+                      [class.form-control]="!hasError('email')" [class.form-control-error]="hasError('email')"
+                      placeholder="Enter email address" (blur)="validateField('email')" (input)="validateField('email')"
+                      (focus)="onFormFieldFocus()" [readOnly]="dialogMode === 'edit'" required>
+                    <div class="input-status" *ngIf="formData.email && !hasError('email')">
+                      <i class="fas fa-check-circle status-valid"></i>
+                    </div>
+                  </div>
+                  <div class="error-message" *ngIf="hasError('email')">
+                    <span class="error-icon"></span>
+                    {{ getError('email') }}
+                  </div>
+                </div>
+
+                <!-- Password entry removed: password will be generated server-side after email verification -->
+
+                <!-- Full Name removed; backend will compose from first/last -->
+
+                <div class="form-group">
+                  <label for="firstName" class="form-label">First Name <span class="required">*</span></label>
+                  <div class="input-wrapper">
+                    <input id="firstName" type="text" [(ngModel)]="formData.firstName" name="firstName"
+                      [class.form-control]="!hasError('firstName')" [class.form-control-error]="hasError('firstName')"
+                      placeholder="Enter first name" required (blur)="validateField('firstName')"
+                      (input)="validateField('firstName')" (focus)="onFormFieldFocus()">
+                    <div class="input-status" *ngIf="formData.firstName && !hasError('firstName')">
+                      <i class="fas fa-check-circle status-valid"></i>
+                    </div>
+                  </div>
+                  <div class="error-message" *ngIf="hasError('firstName')">
+                    <span class="error-icon"></span>
+                    {{ getError('firstName') }}
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="lastName" class="form-label">Last Name <span class="required">*</span></label>
+                  <div class="input-wrapper">
+                    <input id="lastName" type="text" [(ngModel)]="formData.lastName" name="lastName"
+                      [class.form-control]="!hasError('lastName')" [class.form-control-error]="hasError('lastName')"
+                      placeholder="Enter last name" required (blur)="validateField('lastName')"
+                      (input)="validateField('lastName')" (focus)="onFormFieldFocus()">
+                    <div class="input-status" *ngIf="formData.lastName && !hasError('lastName')">
+                      <i class="fas fa-check-circle status-valid"></i>
+                    </div>
+                  </div>
+                  <div class="error-message" *ngIf="hasError('lastName')">
+                    <span class="error-icon"></span>
+                    {{ getError('lastName') }}
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="phoneNumber" class="form-label">Phone Number</label>
+                  <input id="phoneNumber" type="tel" [(ngModel)]="formData.phoneNumber" name="phoneNumber"
+                    class="form-control" placeholder="Enter phone number" (focus)="onFormFieldFocus()">
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <div class="section-title-container supplier-location">
+                <div class="section-decoration-left"></div>
+                <div class="section-title-content">
+                  <h3 class="section-title">
+                    <span class="title-icon">
+                      <i class="fas fa-briefcase"></i>
+                    </span>
+                    Employment Information
+                  </h3>
+                  <div class="title-divider"></div>
+                </div>
+                <div class="section-icon-wrapper">
+                  <i class="fas fa-id-badge"></i>
+                </div>
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="department" class="form-label">Department</label>
+                  <div class="searchable-dropdown">
+                    <div class="dropdown-trigger"
+                      (click)="toggleSearchableDropdown('department'); $event.stopPropagation()">
+                      <span class="dropdown-value">{{ getDisplayValue('department') || 'Select department' }}</span>
+                      <i 
+                        *ngIf="hasDropdownValue('department')"
+                        class="fas fa-times clear-icon"
+                        (click)="clearDropdownValue('department', $event)"
+                        title="Clear selection"
+                      ></i>
+                      <i class="dropdown-icon"></i>
+                    </div>
+
+                    <div class="dropdown-menu" *ngIf="dropdownStates['department']?.isOpen">
+                      <div class="search-input-container">
+                        <input type="text" class="search-input" placeholder="Search departments..."
+                          [value]="dropdownStates['department'].searchTerm"
+                          (input)="onSearchInput('department', $event)">
+                        <i class="search-icon"></i>
+                      </div>
+
+                      <div class="dropdown-options">
+                        <div *ngFor="let option of dropdownStates['department']?.filteredOptions"
+                          class="dropdown-option" [class.selected]="getDisplayValue('department') === option"
+                          (click)="selectOption('department', option)">
+                          {{ option }}
+                          <i *ngIf="getDisplayValue('department') === option" class="fas fa-check selected-icon"></i>
+                        </div>
+                        <div *ngIf="dropdownStates['department']?.filteredOptions?.length === 0" class="no-results">
+                          No departments found
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="jobTitle" class="form-label">Job Title</label>
+                  <div class="searchable-dropdown">
+                    <div class="dropdown-trigger"
+                      (click)="toggleSearchableDropdown('jobTitle'); $event.stopPropagation()">
+                      <span class="dropdown-value">{{ getDisplayValue('jobTitle') || 'Select job title' }}</span>
+                      <i 
+                        *ngIf="hasDropdownValue('jobTitle')"
+                        class="fas fa-times clear-icon"
+                        (click)="clearDropdownValue('jobTitle', $event)"
+                        title="Clear selection"
+                      ></i>
+                      <i class="dropdown-icon"></i>
+                    </div>
+
+                    <div class="dropdown-menu" *ngIf="dropdownStates['jobTitle']?.isOpen">
+                      <div class="search-input-container">
+                        <input type="text" class="search-input" placeholder="Search job titles..."
+                          [value]="dropdownStates['jobTitle'].searchTerm" (input)="onSearchInput('jobTitle', $event)">
+                        <i class="search-icon"></i>
+                      </div>
+
+                      <div class="dropdown-options">
+                        <div *ngFor="let option of dropdownStates['jobTitle']?.filteredOptions" class="dropdown-option"
+                          [class.selected]="getDisplayValue('jobTitle') === option"
+                          (click)="selectOption('jobTitle', option)">
+                          {{ option }}
+                          <i *ngIf="getDisplayValue('jobTitle') === option" class="fas fa-check selected-icon"></i>
+                        </div>
+                        <div *ngIf="dropdownStates['jobTitle']?.filteredOptions?.length === 0" class="no-results">
+                          No job titles found
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="location" class="form-label">Location</label>
+                  <div class="searchable-dropdown">
+                    <div class="dropdown-trigger"
+                      (click)="toggleSearchableDropdown('location'); $event.stopPropagation()">
+                      <span class="dropdown-value">{{ getDisplayValue('location') || 'Select location' }}</span>
+                      <i 
+                        *ngIf="hasDropdownValue('location')"
+                        class="fas fa-times clear-icon"
+                        (click)="clearDropdownValue('location', $event)"
+                        title="Clear selection"
+                      ></i>
+                      <i class="dropdown-icon"></i>
+                    </div>
+
+                    <div class="dropdown-menu" *ngIf="dropdownStates['location']?.isOpen">
+                      <div class="search-input-container">
+                        <input type="text" class="search-input" placeholder="Search locations..."
+                          [value]="dropdownStates['location'].searchTerm" (input)="onSearchInput('location', $event)">
+                        <i class="search-icon"></i>
+                      </div>
+
+                      <div class="dropdown-options">
+                        <div *ngFor="let option of dropdownStates['location']?.filteredOptions" class="dropdown-option"
+                          [class.selected]="getDisplayValue('location') === option"
+                          (click)="selectOption('location', option)">
+                          {{ option }}
+                          <i *ngIf="getDisplayValue('location') === option" class="fas fa-check selected-icon"></i>
+                        </div>
+                        <div *ngIf="dropdownStates['location']?.filteredOptions?.length === 0" class="no-results">
+                          No locations found
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="employeeId" class="form-label">Employee ID</label>
+                  <input id="employeeId" type="text" [(ngModel)]="formData.employeeId" name="employeeId"
+                    class="form-control" placeholder="Enter employee ID" (focus)="onFormFieldFocus()">
+                </div>
+
+                <div class="form-group">
+                  <label for="roleId" class="form-label">Roles <span class="required">*</span></label>
+                  <div class="searchable-dropdown">
+                    <div class="dropdown-trigger" [class.form-control-error]="hasError('roleId')"
+                      (click)="toggleSearchableDropdown('roleId'); $event.stopPropagation()">
+                      <span class="dropdown-value">{{ getDisplayValue('roleId') }}</span>
+                      <i 
+                        *ngIf="hasDropdownValue('roleId')"
+                        class="fas fa-times clear-icon"
+                        (click)="clearDropdownValue('roleId', $event)"
+                        title="Clear selection"
+                      ></i>
+                      <i class="dropdown-icon"></i>
+                    </div>
+
+                    <div class="dropdown-menu" *ngIf="dropdownStates['roleId']?.isOpen">
+                      <div class="search-input-container">
+                        <input type="text" class="search-input" placeholder="Search roles..."
+                          [value]="dropdownStates['roleId'].searchTerm" (input)="onSearchInput('roleId', $event)">
+                        <i class="search-icon"></i>
+                      </div>
+
+                      <div class="dropdown-options">
+                        <div *ngFor="let roleId of dropdownStates['roleId']?.filteredOptions" class="dropdown-option"
+                          [class.selected]="isRoleSelected(roleId)" (click)="toggleRoleSelection(roleId); $event.stopPropagation()">
+                          <span class="checkbox-indicator">
+                            <i *ngIf="isRoleSelected(roleId)" class="fas fa-check"></i>
+                          </span>
+                          {{ getRoleName(roleId) }}
+                        </div>
+                        <div *ngIf="dropdownStates['roleId']?.filteredOptions?.length === 0" class="no-results">
+                          No roles found
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="error-message" *ngIf="hasError('roleId')">
+                    <span class="error-icon"></span>
+                    {{ getError('roleId') }}
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="isActive" class="form-label">Active Status</label>
+                  <div class="simple-status-toggle">
+                    <label class="toggle-switch">
+                      <input id="isActive" type="checkbox" [(ngModel)]="formData.isActive" name="isActive">
+                      <span class="toggle-slider"></span>
+                    </label>
+                    <span class="status-text" [class]="formData.isActive ? 'active' : 'inactive'">
+                      {{ formData.isActive ? 'Active' : 'Inactive' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-outline" (click)="closeDialogs()">
+              <i class="fas fa-times"></i>
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="isSubmitting">
+              <i class="fas" [class.fa-plus]="dialogMode === 'add' && !isSubmitting"
+                [class.fa-save]="dialogMode === 'edit' && !isSubmitting" [class.fa-spinner]="isSubmitting"
+                [class.fa-spin]="isSubmitting"></i>
+              {{ isSubmitting ? 'Saving...' : (dialogMode === 'add' ? 'Create User' : 'Save Changes') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Dialog -->
+  <div class="modal-overlay" *ngIf="showViewDialog">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="header-content">
+          <div class="header-icon">
+            <i class="fas fa-user"></i>
+          </div>
+          <div class="header-text">
+            <h2>User Details</h2>
+            <p class="modal-subtitle" *ngIf="selectedItem">{{ selectedItem.fullName }}</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-outline btn-sm" (click)="exportUserDetailsAsPDF()" title="Export as PDF">
+            <i class="fas fa-file-pdf"></i>
+            Export PDF
+          </button>
+          <button class="btn-close" (click)="closeDialogs()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <div class="profile-form" *ngIf="selectedItem">
+          <!-- User Profile Card -->
+          <div class="entity-card">
+            <div class="entity-info">
+              <div class="entity-avatar">
+                <img *ngIf="getUserAvatarUrl(selectedItem)" [src]="getUserAvatarUrl(selectedItem)" [alt]="selectedItem.fullName" class="avatar-image">
+                <div *ngIf="!getUserAvatarUrl(selectedItem)" class="avatar-placeholder">
+                  {{ getUserInitials(selectedItem) }}
+                </div>
+              </div>
+              
+            </div>
+          </div>
+
+          <!-- Personal Information Card -->
+          <div class="info-card">
+            <div class="card-header">
+              <div class="card-header-content">
+                <div class="card-icon personal">
+                  <i class="fas fa-user-circle"></i>
+                </div>
+                <div>
+                  <h2 class="card-title">Personal Information</h2>
+                  <p class="card-subtitle">User personal details and contact information</p>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-field">
+                  <label class="field-label">Full Name</label>
+                  <div class="field-value">{{ selectedItem.fullName }}</div>
+                </div>
+                <div class="form-field">
+                  <label class="field-label">Email</label>
+                  <div class="field-value">{{ selectedItem.email }}</div>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-field">
+                  <label class="field-label">First Name</label>
+                  <div class="field-value">{{ selectedItem.firstName || '-' }}</div>
+                </div>
+                <div class="form-field">
+                  <label class="field-label">Last Name</label>
+                  <div class="field-value">{{ selectedItem.lastName || '-' }}</div>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-field">
+                  <label class="field-label">Phone</label>
+                  <div class="field-value">{{ selectedItem.phoneNumber || '-' }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Work Information Card -->
+          <div class="info-card">
+            <div class="card-header">
+              <div class="card-header-content">
+                <div class="card-icon work">
+                  <i class="fas fa-briefcase"></i>
+                </div>
+                <div>
+                  <h2 class="card-title">Work Information</h2>
+                  <p class="card-subtitle">Department, job title, and work location</p>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-field">
+                  <label class="field-label">Department</label>
+                  <div class="field-value">{{ selectedItem.department || '-' }}</div>
+                </div>
+                <div class="form-field">
+                  <label class="field-label">Job Title</label>
+                  <div class="field-value">{{ selectedItem.jobTitle || '-' }}</div>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-field">
+                  <label class="field-label">Location</label>
+                  <div class="field-value">{{ selectedItem.location || '-' }}</div>
+                </div>
+                <div class="form-field">
+                  <label class="field-label">Employee ID</label>
+                  <div class="field-value">{{ selectedItem.employeeId || '-' }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Role & Permissions Card -->
+          <div class="info-card">
+            <div class="card-header">
+              <div class="card-header-content">
+                <div class="card-icon personal">
+                  <i class="fas fa-user-shield"></i>
+                </div>
+                <div>
+                  <h2 class="card-title">Role & Permissions</h2>
+                  <p class="card-subtitle">Assigned roles and access permissions</p>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-field full-width">
+                  <label class="field-label">Roles</label>
+                  <div class="field-value">
+                    <div class="role-badges-container" *ngIf="selectedItem.roleDetails && selectedItem.roleDetails.length > 0">
+                      <span class="role-badge" 
+                            *ngFor="let roleDetail of selectedItem.roleDetails"
+                            [style.background-color]="getRoleColor(roleDetail.color)"
+                            [title]="roleDetail.name">
+                        <i [class]="getRoleIcon(roleDetail.icon)" class="role-badge-icon"></i>
+                        <span class="role-badge-text">{{ roleDetail.name }}</span>
+                      </span>
+                    </div>
+                    <div class="role-badges-container" *ngIf="!selectedItem.roleDetails && selectedItem.roleNames && selectedItem.roleNames.length > 0">
+                      <span class="role-badge" *ngFor="let roleName of selectedItem.roleNames">{{ roleName }}</span>
+                    </div>
+                    <span *ngIf="(!selectedItem.roleDetails || selectedItem.roleDetails.length === 0) && (!selectedItem.roleNames || selectedItem.roleNames.length === 0)">-</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Account Status Card -->
+          <div class="info-card">
+            <div class="card-header">
+              <div class="card-header-content">
+                <div class="card-icon work">
+                  <i class="fas fa-shield-alt"></i>
+                </div>
+                <div>
+                  <h2 class="card-title">Account Status</h2>
+                  <p class="card-subtitle">Account status and verification details</p>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-field">
+                  <label class="field-label">Status</label>
+                  <div class="field-value">
+                    <span class="status-badge" [class]="getStatusClass(selectedItem.isActive)">
+                      {{ selectedItem.isActive ? 'Active' : 'Inactive' }}
+                    </span>
+                  </div>
+                </div>
+                <div class="form-field">
+                  <label class="field-label">Email Verified</label>
+                  <div class="field-value">
+                    <span class="status-badge" [ngClass]="getBadgeClass(selectedItem.isEmailVerified)">
+                      {{ selectedItem.isEmailVerified ? 'Verified' : 'Unverified' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-field">
+                  <label class="field-label">Phone Verified</label>
+                  <div class="field-value">
+                    <span class="status-badge" [ngClass]="getBadgeClass(selectedItem.isPhoneVerified)">
+                      {{ selectedItem.isPhoneVerified ? 'Verified' : 'Unverified' }}
+                    </span>
+                  </div>
+                </div>
+                <div class="form-field">
+                  <label class="field-label">MFA Enabled</label>
+                  <div class="field-value">
+                    <span class="status-badge" [ngClass]="getBadgeClass(selectedItem.isMfaEnabled)">
+                      {{ selectedItem.isMfaEnabled ? 'Enabled' : 'Disabled' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-field">
+                  <label class="field-label">Last Login</label>
+                  <div class="field-value">{{ selectedItem.lastLoginAt ? formatDateTime(selectedItem.lastLoginAt) : 'Never' }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dates & Metadata Section -->
+          <div class="info-card">
+            <div class="card-header">
+              <div class="card-header-content">
+                <div class="card-icon work">
+                  <i class="fas fa-calendar"></i>
+                </div>
+                <div>
+                  <h2 class="card-title">Dates & Metadata</h2>
+                  <p class="card-subtitle">Creation and modification information</p>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-field">
+                  <label class="field-label">Created Date</label>
+                  <div class="field-value">{{ formatDateTime(selectedItem.createdAtUtc) }}</div>
+                </div>
+                <div class="form-field">
+                  <label class="field-label">Created By</label>
+                  <div class="field-value">{{ selectedItem.createdBy || '-' }}</div>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-field">
+                  <label class="field-label">Modified Date</label>
+                  <div class="field-value">{{ selectedItem.modifiedAtUtc ? formatDateTime(selectedItem.modifiedAtUtc) : '-' }}</div>
+                </div>
+                <div class="form-field">
+                  <label class="field-label">Modified By</label>
+                  <div class="field-value">{{ selectedItem.modifiedBy || '-' }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-outline" (click)="closeDialogs()">
+            Close
+          </button>
+          <button *hasPermission="'Users.Update'" class="btn btn-primary" (click)="openEditDialog(selectedItem!); showViewDialog = false">
+            <i class="fas fa-edit"></i>
+            Edit User
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Dialog -->
+  <div class="modal-overlay" *ngIf="showDeleteDialog">
+    <div class="modal modal-sm modal-danger">
+      <div class="modal-header">
+        <div class="header-content">
+          <div class="header-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          <div class="header-text">
+            <h2>Delete User</h2>
+            <p class="modal-subtitle">This action cannot be undone</p>
+          </div>
+        </div>
+        <button class="btn-close" (click)="closeDialogs()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="warning-content">
+          <div class="warning-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+
+          <div class="warning-text">
+            <p>
+              This action cannot be undone. This will permanently delete
+              <span class="item-count">
+                {{ deleteItemCount }} {{ deleteItemCount === 1 ? 'user' : 'users' }}
+              </span>
+              from the system.
+            </p>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-outline" (click)="closeDialogs()">
+            <i class="fas fa-times"></i>
+            Cancel
+          </button>
+          <button class="btn btn-danger" (click)="confirmDelete()">
+            <i class="fas fa-trash"></i>
+            Delete {{ deleteItemCount === 1 ? 'User' : 'Users' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import Dialog -->
+  <div class="modal-overlay" *ngIf="showImportDialog">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="header-content">
+          <div class="header-icon">
+            <i class="fas fa-file-import"></i>
+          </div>
+          <div class="header-text">
+            <h2>Import Users</h2>
+            <p class="modal-subtitle">Upload CSV or Excel file to import users</p>
+          </div>
+        </div>
+        <button class="btn-close" (click)="closeImportDialog()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="import-container">
+          <!-- Step 1: Download Template -->
+          <div class="import-section">
+            <div class="section-header">
+              <i class="fas fa-download"></i>
+              <h3>Step 1: Download Template</h3>
+            </div>
+            <p class="section-description">Download the Excel template with all required columns. Fill in your data
+              following the sample format.</p>
+            <button class="btn btn-outline" type="button" (click)="downloadTemplate()">
+              <i class="fas fa-file-download"></i>
+              <span>Download Template</span>
+            </button>
+          </div>
+
+          <!-- Step 2: Upload File -->
+          <div class="import-section">
+            <div class="section-header">
+              <i class="fas fa-upload"></i>
+              <h3>Step 2: Upload File</h3>
+            </div>
+            <p class="section-description">Select a CSV or Excel file. Maximum size: 5MB</p>
+
+            <div class="file-upload-area" [class.has-file]="selectedFile" (dragover)="onDragOver($event)"
+              (dragenter)="onDragEnter($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)">
+              <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" (change)="onFileSelected($event)"
+                style="display: none;">
+
+              <div *ngIf="!selectedFile" class="upload-placeholder" (click)="triggerFileInput()">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Click to browse or drag and drop</p>
+                <span>Supported: CSV, Excel (.xlsx, .xls)</span>
+              </div>
+
+              <div *ngIf="selectedFile" class="file-selected">
+                <div class="file-info">
+                  <i class="fas fa-file-excel"></i>
+                  <div class="file-details">
+                    <span class="file-name">{{ selectedFile.name }}</span>
+                    <span class="file-size">{{ (selectedFile.size / 1024).toFixed(2) }} KB</span>
+                  </div>
+                </div>
+                <div class="file-actions">
+                  <button class="btn-browse" type="button" (click)="triggerFileInput()" title="Browse for another file">
+                    <i class="fas fa-folder-open"></i>
+                  </button>
+                  <button class="btn-remove" type="button" (click)="removeSelectedFile()" title="Remove file">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Import Errors -->
+          <div class="import-section" *ngIf="importErrors.length > 0">
+            <div class="section-header">
+              <i class="fas fa-exclamation-triangle"></i>
+              <h3>Import Errors ({{ importErrors.length }})</h3>
+            </div>
+            <p class="section-description">The following errors occurred during import. Please fix these issues and try
+              again.</p>
+
+            <div class="import-errors">
+              <div class="error-header">
+                <button *ngIf="errorReportId" class="btn-download-error-report" (click)="downloadErrorReport()"
+                  type="button">
+                  <i class="fas fa-download"></i>
+                  Download Detailed Report
+                </button>
+              </div>
+              <div class="error-list">
+                <div class="error-item" *ngFor="let error of importErrors">
+                  <i class="fas fa-times-circle"></i>
+                  <span>{{ error }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Import Instructions -->
+          <div class="import-section">
+            <div class="section-header">
+              <i class="fas fa-info-circle"></i>
+              <h3>Import Instructions</h3>
+            </div>
+            <p class="section-description">Follow these guidelines to ensure successful import of your user data.</p>
+
+            <div class="import-instructions">
+              <ul>
+                <li><strong>Required Headers:</strong> First Name, Last Name, Email, Department, Job Title, Location,
+                  Role, Phone Number, Status, Employee ID</li>
+                <li><strong>Required Fields:</strong> First Name, Last Name, and Email are mandatory</li>
+                <li><strong>Email:</strong> Must be unique and in valid format (e.g., user&#64;example.com)</li>
+                <li><strong>Status:</strong> Must be "Active" or "Inactive" (case-insensitive)</li>
+                <li><strong>Duplicates:</strong> Rows with existing email addresses will be automatically skipped</li>
+                <li><strong>Auto-Generated:</strong> Password and Full Name are automatically generated by the system
+                </li>
+                <li><strong>Template:</strong> Download the template above to see the correct format and sample data
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-outline" type="button" (click)="closeImportDialog()" [disabled]="isImporting">
+            <i class="fas fa-times"></i>
+            Cancel
+          </button>
+          <button class="btn btn-primary" type="button" (click)="importData()"
+            [disabled]="!selectedFile || isImporting">
+            <i class="fas" [class.fa-file-import]="!isImporting" [class.fa-spinner]="isImporting"
+              [class.fa-spin]="isImporting"></i>
+            {{ isImporting ? 'Importing...' : 'Import Data' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import History Dialog -->
+  <div class="modal-overlay" *ngIf="showImportHistoryDialog">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="header-content">
+          <div class="header-icon">
+            <i class="fas fa-history"></i>
+          </div>
+          <div class="header-text">
+            <h2>Import/Export History</h2>
+            <p class="modal-subtitle">View all user import and export operations</p>
+          </div>
+        </div>
+        <button class="btn-close" (click)="closeImportHistoryDialog()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="import-history-container">
+          <!-- History Type Filters -->
+          <div class="history-filters">
+            <button
+              class="filter-btn"
+              [class.active]="historyType === undefined"
+              (click)="filterHistory('all')">
+              All
+            </button>
+            <button
+              class="filter-btn"
+              [class.active]="historyType === 'import'"
+              (click)="filterHistory('import')">
+              <i class="fas fa-upload"></i> Import
+            </button>
+            <button
+              class="filter-btn"
+              [class.active]="historyType === 'export'"
+              (click)="filterHistory('export')">
+              <i class="fas fa-download"></i> Export
+            </button>
+          </div>
+
+          <!-- Loading State -->
+          <div *ngIf="isLoadingHistory" class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>Loading history...</span>
+          </div>
+
+          <!-- Empty State -->
+          <div *ngIf="!isLoadingHistory && history.length === 0" class="empty-state">
+            <i class="fas fa-history"></i>
+            <h3>No history found</h3>
+            <p>History will appear here after you import or export users</p>
+          </div>
+
+          <!-- History Table (Desktop) -->
+          <div *ngIf="!isLoadingHistory && history.length > 0 && !isMobile" class="history-table-wrapper">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>File Name</th>
+                  <th>Format</th>
+                  <th>Date</th>
+                  <th>Progress</th>
+                  <th>Status</th>
+                  <th class="text-center">Total Rows</th>
+                  <th class="text-center">Success</th>
+                  <th class="text-center">Updated</th>
+                  <th class="text-center">Skipped</th>
+                  <th class="text-center">Errors</th>
+                  <th>Strategy</th>
+                  <th>File Size</th>
+                  <th>User</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let h of history">
+                  <!-- Type Column -->
+                  <td>
+                    <span class="operation-badge" [class.import]="h.operationType === 'Import'" [class.export]="h.operationType === 'Export'">
+                      <i class="fas" [class.fa-upload]="h.operationType === 'Import'" [class.fa-download]="h.operationType === 'Export'"></i>
+                      {{ h.operationType }}
+                    </span>
+                  </td>
+
+                  <!-- File Name -->
+                  <td class="file-name">
+                    <i class="fas fa-file-excel"></i>
+                    {{ h.fileName }}
+                  </td>
+
+                  <!-- Format -->
+                  <td>
+                    <span class="format-badge">{{ h.format }}</span>
+                  </td>
+
+                  <!-- Date -->
+                  <td>{{ formatDateTime(h.createdAtUtc) }}</td>
+
+                  <!-- Progress -->
+                  <td class="progress-column">
+                    <div *ngIf="isCurrentJob(h)" class="mini-progress">
+                      <div class="mini-progress-bar">
+                        <div class="mini-progress-fill" [style.width.%]="h.progress"></div>
+                      </div>
+                      <span class="mini-progress-text">{{ h.progress }}%</span>
+                    </div>
+                    <div *ngIf="!isCurrentJob(h) && (h.status === 'Processing' || h.status === 'Pending')" class="mini-progress">
+                      <div class="mini-progress-bar">
+                        <div class="mini-progress-fill" [style.width.%]="h.progress"></div>
+                      </div>
+                      <span class="mini-progress-text">{{ h.progress }}%</span>
+                    </div>
+                    <span *ngIf="!isCurrentJob(h) && h.status !== 'Processing' && h.status !== 'Pending'">{{ h.progress }}%</span>
+                  </td>
+
+                  <!-- Status -->
+                  <td>
+                    <span [ngClass]="getHistoryStatusClass(h.status)">
+                      {{ h.status }}
+                    </span>
+                  </td>
+
+                  <!-- Total Rows -->
+                  <td class="text-center">{{ h.totalRows }}</td>
+
+                  <!-- Success -->
+                  <td class="text-center">
+                    <span class="badge badge-success" *ngIf="h.successCount > 0">
+                      {{ h.successCount }}
+                    </span>
+                    <span *ngIf="h.successCount === 0">-</span>
+                  </td>
+
+                  <!-- Updated -->
+                  <td class="text-center">
+                    <span class="badge badge-info" *ngIf="h.updatedCount > 0">
+                      {{ h.updatedCount }}
+                    </span>
+                    <span *ngIf="h.updatedCount === 0">-</span>
+                  </td>
+
+                  <!-- Skipped -->
+                  <td class="text-center">
+                    <span class="badge badge-warning" *ngIf="h.skippedCount > 0">
+                      {{ h.skippedCount }}
+                    </span>
+                    <span *ngIf="h.skippedCount === 0">-</span>
+                  </td>
+
+                  <!-- Errors -->
+                  <td class="text-center">
+                    <div *ngIf="h.errorCount > 0">
+                      <span class="badge badge-danger">{{ h.errorCount }}</span>
+                    </div>
+                    <span *ngIf="h.errorCount === 0">-</span>
+                  </td>
+
+                  <!-- Strategy -->
+                  <td>
+                    <span class="strategy-badge" *ngIf="h.duplicateHandlingStrategy">
+                      {{ getStrategyDisplayName(h.duplicateHandlingStrategy) }}
+                    </span>
+                    <span *ngIf="!h.duplicateHandlingStrategy">-</span>
+                  </td>
+
+                  <!-- File Size -->
+                  <td>{{ formatFileSize(h.fileSizeBytes) }}</td>
+
+                  <!-- User -->
+                  <td>{{ h.importedBy }}</td>
+
+                  <!-- Actions -->
+                  <td>
+                    <!-- For Imports: Download Error Report -->
+                    <button *ngIf="h.operationType === 'Import' && h.errorReportId"
+                            class="btn-download-error-report btn-sm"
+                            (click)="downloadErrorReportForHistory(h.id)"
+                            title="Download Error Report">
+                      <i class="fas fa-file-csv"></i>
+                    </button>
+
+                    <!-- For Exports: Download File -->
+                    <button *ngIf="h.operationType === 'Export' && h.status === 'Completed'"
+                            class="btn-download-error-report btn-sm"
+                            (click)="downloadExportFromHistory(h.id)"
+                            title="Download Export">
+                      <i class="fas fa-download"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- History Mobile Cards -->
+          <div *ngIf="!isLoadingHistory && history.length > 0 && isMobile" class="mobile-cards">
+            <div *ngFor="let h of history" class="mobile-card">
+              <div class="mobile-card-header">
+                <div class="mobile-card-title">
+                  <span class="operation-badge" [class.import]="h.operationType === 'Import'" [class.export]="h.operationType === 'Export'">
+                    <i class="fas" [class.fa-upload]="h.operationType === 'Import'" [class.fa-download]="h.operationType === 'Export'"></i>
+                    {{ h.operationType }}
+                  </span>
+                  <span [ngClass]="getHistoryStatusClass(h.status)" class="status-badge-mobile">
+                    {{ h.status }}
+                  </span>
+                </div>
+              </div>
+              <div class="mobile-card-body">
+                <div class="mobile-card-grid">
+                  <div class="mobile-card-field">
+                    <span class="field-label">File Name</span>
+                    <span class="field-value">
+                      <i class="fas fa-file-excel"></i>
+                      {{ h.fileName }}
+                    </span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">Format</span>
+                    <span class="field-value">
+                      <span class="format-badge">{{ h.format }}</span>
+                    </span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">Date</span>
+                    <span class="field-value">{{ formatDateTime(h.createdAtUtc) }}</span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">Progress</span>
+                    <span class="field-value">
+                      <div *ngIf="isCurrentJob(h) || (h.status === 'Processing' || h.status === 'Pending')" class="mini-progress">
+                        <div class="mini-progress-bar">
+                          <div class="mini-progress-fill" [style.width.%]="h.progress"></div>
+                        </div>
+                        <span class="mini-progress-text">{{ h.progress }}%</span>
+                      </div>
+                      <span *ngIf="!isCurrentJob(h) && h.status !== 'Processing' && h.status !== 'Pending'">{{ h.progress }}%</span>
+                    </span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">Total Rows</span>
+                    <span class="field-value">{{ h.totalRows }}</span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">Success</span>
+                    <span class="field-value">
+                      <span class="badge badge-success" *ngIf="h.successCount > 0">{{ h.successCount }}</span>
+                      <span *ngIf="h.successCount === 0">-</span>
+                    </span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">Updated</span>
+                    <span class="field-value">
+                      <span class="badge badge-info" *ngIf="h.updatedCount > 0">{{ h.updatedCount }}</span>
+                      <span *ngIf="h.updatedCount === 0">-</span>
+                    </span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">Skipped</span>
+                    <span class="field-value">
+                      <span class="badge badge-warning" *ngIf="h.skippedCount > 0">{{ h.skippedCount }}</span>
+                      <span *ngIf="h.skippedCount === 0">-</span>
+                    </span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">Errors</span>
+                    <span class="field-value">
+                      <span class="badge badge-danger" *ngIf="h.errorCount > 0">{{ h.errorCount }}</span>
+                      <span *ngIf="h.errorCount === 0">-</span>
+                    </span>
+                  </div>
+                  <div class="mobile-card-field" *ngIf="h.duplicateHandlingStrategy">
+                    <span class="field-label">Strategy</span>
+                    <span class="field-value">
+                      <span class="strategy-badge">{{ getStrategyDisplayName(h.duplicateHandlingStrategy) }}</span>
+                    </span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">File Size</span>
+                    <span class="field-value">{{ formatFileSize(h.fileSizeBytes) }}</span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">User</span>
+                    <span class="field-value">{{ h.importedBy }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="mobile-card-actions" *ngIf="(h.operationType === 'Import' && h.errorReportId) || (h.operationType === 'Export' && h.status === 'Completed')">
+                <div class="quick-actions">
+                  <button *ngIf="h.operationType === 'Import' && h.errorReportId"
+                          class="icon-btn action-download"
+                          (click)="downloadErrorReportForHistory(h.id)"
+                          title="Download Error Report">
+                    <i class="fas fa-file-csv"></i>
+                  </button>
+                  <button *ngIf="h.operationType === 'Export' && h.status === 'Completed'"
+                          class="icon-btn action-download"
+                          (click)="downloadExportFromHistory(h.id)"
+                          title="Download Export">
+                    <i class="fas fa-download"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pagination -->
+          <div *ngIf="!isLoadingHistory && historyTotalCount > historyPageSize" class="history-pagination">
+            <div class="pagination-info">
+              <span>
+                Showing {{ (historyPage - 1) * historyPageSize + 1 }} to
+                {{ Math.min(historyPage * historyPageSize, historyTotalCount) }} of
+                {{ historyTotalCount }} entries
+              </span>
+            </div>
+            <div class="pagination-controls">
+              <button class="btn btn-outline btn-sm" [disabled]="historyPage === 1"
+                (click)="goToHistoryPage(1)">
+                <i class="fas fa-angle-double-left"></i>
+              </button>
+              <button class="btn btn-outline btn-sm" [disabled]="historyPage === 1"
+                (click)="goToHistoryPage(historyPage - 1)">
+                <i class="fas fa-angle-left"></i>
+              </button>
+              <span class="page-info">
+                Page {{ historyPage }} of {{ getHistoryTotalPages() }}
+              </span>
+              <button class="btn btn-outline btn-sm" [disabled]="historyPage === getHistoryTotalPages()"
+                (click)="goToHistoryPage(historyPage + 1)">
+                <i class="fas fa-angle-right"></i>
+              </button>
+              <button class="btn btn-outline btn-sm" [disabled]="historyPage === getHistoryTotalPages()"
+                (click)="goToHistoryPage(getHistoryTotalPages())">
+                <i class="fas fa-angle-double-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-outline" (click)="closeImportHistoryDialog()">
+            <i class="fas fa-times"></i>
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export Progress Dialog -->
+  <div class="modal-overlay" *ngIf="showExportDialog">
+    <div class="modal modal-md">
+      <div class="modal-header">
+        <div class="header-content">
+          <div class="header-icon">
+            <i class="fas fa-download"></i>
+          </div>
+          <div class="header-text">
+            <h2>Export Progress</h2>
+            <p class="modal-subtitle">Your export is being processed</p>
+          </div>
+        </div>
+        <button class="btn-close" (click)="closeExportDialog()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="export-progress-container">
+          <!-- Status Icon -->
+          <div class="status-icon" [ngSwitch]="exportStatus">
+            <i *ngSwitchCase="'Pending'" class="fas fa-clock fa-3x text-warning"></i>
+            <i *ngSwitchCase="'Processing'" class="fas fa-spinner fa-spin fa-3x text-primary"></i>
+            <i *ngSwitchCase="'Completed'" class="fas fa-check-circle fa-3x text-success"></i>
+            <i *ngSwitchCase="'Failed'" class="fas fa-times-circle fa-3x text-danger"></i>
+          </div>
+
+          <!-- Status Text -->
+          <h3>{{ exportStatus }}</h3>
+
+          <!-- Progress Bar -->
+          <div class="progress-container" *ngIf="exportStatus === 'Processing' || exportStatus === 'Pending'">
+            <div class="progress-bar">
+              <div class="progress-fill" [style.width.%]="exportProgress"></div>
+            </div>
+            <p class="progress-text">{{ exportProgress }}%</p>
+          </div>
+
+          <!-- Message -->
+          <p class="export-message" *ngIf="exportStatus === 'Processing'">
+            Please wait while we generate your export file. This may take a few moments for large datasets.
+          </p>
+          <p class="export-message" *ngIf="exportStatus === 'Pending'">
+            Your export job is queued and will start shortly...
+          </p>
+          <p class="export-message text-success" *ngIf="exportStatus === 'Completed'">
+            Export completed successfully! Your file will download automatically.
+          </p>
+          <p class="export-message text-danger" *ngIf="exportStatus === 'Failed'">
+            Export failed. Please try again or check the history for details.
+          </p>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-outline" (click)="closeExportDialog()">
+          {{ exportStatus === 'Completed' || exportStatus === 'Failed' ? 'Close' : 'Run in Background' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Notifications -->
+  <app-notification-container></app-notification-container>
+</div>

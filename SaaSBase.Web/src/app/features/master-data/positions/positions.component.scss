@@ -1,0 +1,71 @@
+// Departments Component Styles
+
+.positions-page {
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+}
+
+// ===== PERMISSION INFO STYLES =====
+
+.position-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.position-code {
+  font-weight: 600;
+  // font-size: 14px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.position-name {
+  // font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Mobile card permission info
+.mobile-card-title .position-info {
+  gap: 2px;
+}
+
+.mobile-card-title .permission-info h3 {
+  font-size: 16px;
+  margin-bottom: 2px;
+}
+
+.mobile-card-title .permission-info .position-code {
+  font-size: 13px;
+}
+
+// View dialog entity icon
+.entity-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  color: white;
+  font-size: 24px;
+}
+
+.entity-code {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+// Progress column width
+.progress-column {
+  min-width: 120px;
+}

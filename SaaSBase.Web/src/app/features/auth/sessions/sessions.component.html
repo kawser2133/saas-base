@@ -1,0 +1,733 @@
+<app-notification-container></app-notification-container>
+
+<div class="page-header">
+  <div class="header-surface">
+    <app-breadcrumb></app-breadcrumb>
+
+    <div class="header-main">
+      <div class="title-block">
+        <div class="title-content">
+          <h1 class="page-title">User Sessions</h1>
+          <p class="page-description">Manage active sessions, devices and revoke access when needed</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="header-stats">
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-signal"></i>
+            </div>
+            <div class="stat-content">
+              <span class="stat-value">{{ totalCount }}</span>
+              <span class="stat-label">Total Sessions</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Search and Filter Bar -->
+<div class="search-filter-section" (click)="onMainPageClick($event)">
+  <div class="search-filter-content">
+    <div class="search-section">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" [(ngModel)]="searchQuery" (input)="onSearchChange()" (focus)="onMainPageClick($event)"
+          placeholder="Search email, device, browser, OS, IP, location, session id..." class="search-input">
+        <span class="search-count" *ngIf="searchQuery">{{ totalCount }} results</span>
+      </div>
+    </div>
+
+    <div class="filter-actions">
+      <button class="btn btn-outline" type="button" (click)="loadData()" [disabled]="isLoading"
+        title="Refresh data">
+        <i class="fas" [class.fa-sync-alt]="!isLoading" [class.fa-spinner]="isLoading"
+          [class.fa-spin]="isLoading"></i>
+      </button>
+
+      <div class="dropdown">
+        <button class="btn btn-outline dropdown-toggle" type="button" (click)="toggleExportMenu()" title="Export">
+          <i class="fas fa-download"></i>
+          <span class="filter-badge" *ngIf="selectedItems.size > 0" >{{ selectedItems.size }}</span>
+        </button>
+        <div class="dropdown-menu" *ngIf="exportMenuOpen">
+          <a class="dropdown-item" (click)="onExportFormat('excel'); exportMenuOpen = false">
+            <i class="fas fa-file-excel text-success"></i> Export as Excel
+          </a>
+          <a class="dropdown-item" (click)="onExportFormat('csv'); exportMenuOpen = false">
+            <i class="fas fa-file-csv text-info"></i> Export as CSV
+          </a>
+          <a class="dropdown-item" (click)="onExportFormat('pdf'); exportMenuOpen = false">
+            <i class="fas fa-file-pdf text-danger"></i> Export as PDF
+          </a>
+          <a class="dropdown-item" (click)="onExportFormat('json'); exportMenuOpen = false">
+            <i class="fas fa-file-code text-primary"></i> Export as JSON
+          </a>
+        </div>
+      </div>
+      
+      <button class="btn btn-outline" type="button" (click)="openHistoryDialog()" title="History">
+        <i class="fas fa-history"></i>
+      </button>
+
+      <ng-container *hasPermission="'Sessions.Delete'">
+        <button *ngIf="selectedItems.size > 0" class="btn btn-outline" (click)="bulkRevokeSessions()" title="Revoke">
+          <i class="fas fa-ban"></i>
+          <span class="filter-badge">{{ selectedItems.size }}</span>
+        </button>
+      </ng-container>
+    </div>
+  </div>
+</div>
+
+<!-- Data Display -->
+<div class="data-display" (click)="onMainPageClick($event)">
+  <!-- Desktop Table View -->
+  <div class="table-container" *ngIf="!isMobile">
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="checkbox-column">
+              <input type="checkbox" [checked]="isAllSelected()" (change)="masterToggle()" class="form-check-input">
+            </th>
+            <th class="sortable" (click)="onSort('useremail')">
+              User Email
+              <i class="fas fa-sort" *ngIf="sortField !== 'useremail'"></i>
+              <i class="fas fa-sort-up" *ngIf="sortField === 'useremail' && sortDirection === 'asc'"></i>
+              <i class="fas fa-sort-down" *ngIf="sortField === 'useremail' && sortDirection === 'desc'"></i>
+            </th>
+            <th class="sortable" (click)="onSort('device')">
+              Device
+              <i class="fas fa-sort" *ngIf="sortField !== 'device'"></i>
+              <i class="fas fa-sort-up" *ngIf="sortField === 'device' && sortDirection === 'asc'"></i>
+              <i class="fas fa-sort-down" *ngIf="sortField === 'device' && sortDirection === 'desc'"></i>
+            </th>
+            <th class="sortable" (click)="onSort('browser')">
+              Browser
+              <i class="fas fa-sort" *ngIf="sortField !== 'browser'"></i>
+              <i class="fas fa-sort-up" *ngIf="sortField === 'browser' && sortDirection === 'asc'"></i>
+              <i class="fas fa-sort-down" *ngIf="sortField === 'browser' && sortDirection === 'desc'"></i>
+            </th>
+            <th class="sortable" (click)="onSort('os')">
+              OS
+              <i class="fas fa-sort" *ngIf="sortField !== 'os'"></i>
+              <i class="fas fa-sort-up" *ngIf="sortField === 'os' && sortDirection === 'asc'"></i>
+              <i class="fas fa-sort-down" *ngIf="sortField === 'os' && sortDirection === 'desc'"></i>
+            </th>
+            <th class="sortable" (click)="onSort('ip')">
+              IP
+              <i class="fas fa-sort" *ngIf="sortField !== 'ip'"></i>
+              <i class="fas fa-sort-up" *ngIf="sortField === 'ip' && sortDirection === 'asc'"></i>
+              <i class="fas fa-sort-down" *ngIf="sortField === 'ip' && sortDirection === 'desc'"></i>
+            </th>
+            <th class="sortable" (click)="onSort('location')">
+              Location
+              <i class="fas fa-sort" *ngIf="sortField !== 'location'"></i>
+              <i class="fas fa-sort-up" *ngIf="sortField === 'location' && sortDirection === 'asc'"></i>
+              <i class="fas fa-sort-down" *ngIf="sortField === 'location' && sortDirection === 'desc'"></i>
+            </th>
+            <th class="sortable" *ngIf="isSystemAdmin" (click)="onSort('organizationName')">
+              Company
+              <i class="fas fa-sort" *ngIf="sortField !== 'organizationName'"></i>
+              <i class="fas fa-sort-up" *ngIf="sortField === 'organizationName' && sortDirection === 'asc'"></i>
+              <i class="fas fa-sort-down" *ngIf="sortField === 'organizationName' && sortDirection === 'desc'"></i>
+            </th>
+            <th class="sortable" (click)="onSort('lastactivityat')">
+              Last Activity
+              <i class="fas fa-sort" *ngIf="sortField !== 'lastactivityat'"></i>
+              <i class="fas fa-sort-up" *ngIf="sortField === 'lastactivityat' && sortDirection === 'asc'"></i>
+              <i class="fas fa-sort-down" *ngIf="sortField === 'lastactivityat' && sortDirection === 'desc'"></i>
+            </th>
+            <th class="sortable" (click)="onSort('expiresat')">
+              Expires
+              <i class="fas fa-sort" *ngIf="sortField !== 'expiresat'"></i>
+              <i class="fas fa-sort-up" *ngIf="sortField === 'expiresat' && sortDirection === 'asc'"></i>
+              <i class="fas fa-sort-down" *ngIf="sortField === 'expiresat' && sortDirection === 'desc'"></i>
+            </th>
+            <th class="actions-column">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="isLoading" class="loading-row">
+            <td [attr.colspan]="isSystemAdmin ? '11' : '10'" class="loading-cell">
+              <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>Loading sessions...</span>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="!isLoading && items.length === 0" class="empty-row">
+            <td [attr.colspan]="isSystemAdmin ? '11' : '10'" class="empty-cell">
+              <div class="empty-state">
+                <i class="fas fa-laptop-code"></i>
+                <h3>No sessions found</h3>
+                <p>There are no active sessions for your account.</p>
+              </div>
+            </td>
+          </tr>
+          <tr *ngFor="let s of items" class="data-row" [hidden]="isLoading">
+            <td class="checkbox-column">
+              <input type="checkbox" [checked]="selectedItems.has(s.sessionId)" (change)="toggleItemSelection(s.sessionId)"
+                class="form-check-input">
+            </td>
+            <td>{{ s.userEmail || '-' }}</td>
+            <td>
+              <div>{{ s.deviceName || 'Unknown' }}</div>
+              <div class="item-id">{{ s.deviceType }}</div>
+            </td>
+            <td>
+              <div>{{ s.browserName || 'Unknown' }}</div>
+              <div class="item-id">{{ s.browserVersion || '' }}</div>
+            </td>
+            <td>{{ s.operatingSystem || 'Unknown' }}</td>
+            <td>{{ s.ipAddress || '-' }}</td>
+            <td>{{ s.location || '-' }}</td>
+            <td class="organization" *ngIf="isSystemAdmin">
+              <div class="organization-badge">
+                <span>{{ s.organizationName || '-' }}</span>
+              </div>
+            </td>
+            <td>{{ s.lastActivityAt | date: 'medium' }}</td>
+            <td>{{ s.expiresAt | date: 'medium' }}</td>
+            <td class="actions">
+              <div class="action-buttons">
+                <button *hasPermission="'Sessions.Delete'" class="action-btn action-btn-revoke" (click)="onRevoke(s)" title="Revoke">
+                  <i class="fas fa-ban"></i>
+                </button>
+                <button *hasPermission="'Sessions.Delete'" class="action-btn action-btn-revoke-all" (click)="onRevokeAllOther(s)" title="Revoke all sessions">
+                  <i class="fas fa-user-slash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Mobile Card View -->
+  <div class="mobile-cards" *ngIf="isMobile">
+    <div *ngIf="isLoading" class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+      <span>Loading sessions...</span>
+    </div>
+
+    <div *ngIf="!isLoading && items.length === 0" class="empty-state">
+      <i class="fas fa-laptop-code"></i>
+      <h3>No sessions found</h3>
+      <p>There are no active sessions for your account.</p>
+    </div>
+
+    <div *ngFor="let s of items" class="mobile-card" [hidden]="isLoading">
+      <div class="mobile-card-header">
+        <div class="mobile-card-checkbox">
+          <input type="checkbox" [checked]="selectedItems.has(s.sessionId)" (change)="toggleItemSelection(s.sessionId)"
+            class="form-check-input">
+        </div>
+        <div class="mobile-card-title">
+          <h3>{{ s.userEmail || 'Unknown User' }}</h3>
+          <p class="item-id">{{ s.deviceName || 'Unknown Device' }}</p>
+        </div>
+      </div>
+
+      <div class="mobile-card-body">
+        <div class="mobile-card-grid">
+          <div class="mobile-card-field">
+            <span class="field-label">Device:</span>
+            <span class="field-value">{{ s.deviceName || 'Unknown' }} ({{ s.deviceType }})</span>
+          </div>
+          <div class="mobile-card-field">
+            <span class="field-label">Browser:</span>
+            <span class="field-value">{{ s.browserName || 'Unknown' }} {{ s.browserVersion || '' }}</span>
+          </div>
+          <div class="mobile-card-field">
+            <span class="field-label">OS:</span>
+            <span class="field-value">{{ s.operatingSystem || 'Unknown' }}</span>
+          </div>
+          <div class="mobile-card-field">
+            <span class="field-label">IP:</span>
+            <span class="field-value">{{ s.ipAddress || '-' }}</span>
+          </div>
+          <div class="mobile-card-field">
+            <span class="field-label">Location:</span>
+            <span class="field-value">{{ s.location || '-' }}</span>
+          </div>
+          <div class="mobile-card-field">
+            <span class="field-label">Last Activity:</span>
+            <span class="field-value">{{ s.lastActivityAt | date: 'medium' }}</span>
+          </div>
+          <div class="mobile-card-field">
+            <span class="field-label">Expires:</span>
+            <span class="field-value">{{ s.expiresAt | date: 'medium' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mobile-card-actions">
+        <div class="quick-actions">
+          <button *hasPermission="'Sessions.Delete'" class="icon-btn action-delete" (click)="onRevoke(s)" title="Revoke Session">
+            <i class="fas fa-ban"></i>
+          </button>
+          <button *hasPermission="'Sessions.Delete'" class="icon-btn action-delete" (click)="onRevokeAllOther(s)" title="Revoke All Other Sessions">
+            <i class="fas fa-user-slash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Pagination -->
+<div class="pagination-section" *ngIf="totalPages > 1" (click)="onMainPageClick($event)">
+  <div class="pagination-content">
+    <div class="pagination-info">
+      <span class="items-per-page">
+        <label>Rows per page:</label>
+        <select class="form-select" [(ngModel)]="pageSize" (ngModelChange)="onPageSizeChange($event)">
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="20">20</option>
+          <option [ngValue]="50">50</option>
+          <option [ngValue]="100">100</option>
+        </select>
+      </span>
+      <span class="pagination-text">
+        Showing {{ (page - 1) * pageSize + 1 }} to
+        {{ Math.min(page * pageSize, totalCount) }} of
+        {{ totalCount }} entries
+      </span>
+    </div>
+
+    <div class="pagination-controls">
+      <button class="btn btn-outline btn-sm" [disabled]="page === 1" (click)="onPageChange(1)">
+        <i class="fas fa-angle-double-left"></i>
+      </button>
+      <button class="btn btn-outline btn-sm" [disabled]="page === 1" (click)="onPageChange(page - 1)">
+        <i class="fas fa-angle-left"></i>
+      </button>
+
+      <span class="page-info">
+        Page {{ page }} of {{ totalPages }}
+      </span>
+
+      <button class="btn btn-outline btn-sm" [disabled]="page === totalPages"
+        (click)="onPageChange(page + 1)">
+        <i class="fas fa-angle-right"></i>
+      </button>
+      <button class="btn btn-outline btn-sm" [disabled]="page === totalPages"
+        (click)="onPageChange(totalPages)">
+        <i class="fas fa-angle-double-right"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- History Dialog -->
+<div class="modal-overlay" *ngIf="showHistoryDialog" (click)="closeHistoryDialog()">
+  <div class="modal modal-lg" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="header-content">
+        <div class="header-icon">
+          <i class="fas fa-history"></i>
+        </div>
+        <div class="header-text">
+          <h2>Import/Export History</h2>
+          <p class="modal-subtitle">View all session import and export operations</p>
+        </div>
+      </div>
+      <button class="btn-close" (click)="closeHistoryDialog()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="import-history-container">
+        <!-- History Type Filters -->
+        <div class="history-filters">
+          <button
+            class="filter-btn"
+            [class.active]="historyType === undefined"
+            (click)="filterHistory('all')">
+            All
+          </button>
+          <button
+            class="filter-btn"
+            [class.active]="historyType === 'import'"
+            (click)="filterHistory('import')">
+            <i class="fas fa-upload"></i> Import
+          </button>
+          <button
+            class="filter-btn"
+            [class.active]="historyType === 'export'"
+            (click)="filterHistory('export')">
+            <i class="fas fa-download"></i> Export
+          </button>
+        </div>
+
+        <!-- Loading State -->
+        <div *ngIf="isLoadingHistory" class="loading-spinner">
+          <i class="fas fa-spinner fa-spin"></i>
+          <span>Loading history...</span>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="!isLoadingHistory && history.length === 0" class="empty-state">
+          <i class="fas fa-history"></i>
+          <h3>No history found</h3>
+          <p>History will appear here after you import or export sessions</p>
+        </div>
+
+        <!-- History Table (Desktop) -->
+        <div *ngIf="!isLoadingHistory && history.length > 0 && !isMobile" class="history-table-wrapper">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>File Name</th>
+                <th>Format</th>
+                <th>Date</th>
+                <th>Progress</th>
+                <th>Status</th>
+                <th class="text-center">Total Rows</th>
+                <th class="text-center">Success</th>
+                <th class="text-center">Updated</th>
+                <th class="text-center">Skipped</th>
+                <th class="text-center">Errors</th>
+                <th>Strategy</th>
+                <th>File Size</th>
+                <th>User</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let h of history">
+                <!-- Type Column -->
+                <td>
+                  <span class="operation-badge" [class.import]="h.operationType === 'Import'" [class.export]="h.operationType === 'Export'">
+                    <i class="fas" [class.fa-upload]="h.operationType === 'Import'" [class.fa-download]="h.operationType === 'Export'"></i>
+                    {{ h.operationType }}
+                  </span>
+                </td>
+
+                <!-- File Name -->
+                <td class="file-name">
+                  <i class="fas fa-file-excel"></i>
+                  {{ h.fileName }}
+                </td>
+
+                <!-- Format -->
+                <td>
+                  <span class="format-badge">{{ h.format }}</span>
+                </td>
+
+                <!-- Date -->
+                <td>{{ formatDateTime(h.createdAtUtc) }}</td>
+
+                <!-- Progress -->
+                <td class="progress-column">
+                  <div *ngIf="isCurrentJob(h)" class="mini-progress">
+                    <div class="mini-progress-bar">
+                      <div class="mini-progress-fill" [style.width.%]="h.progress"></div>
+                    </div>
+                    <span class="mini-progress-text">{{ h.progress }}%</span>
+                  </div>
+                  <div *ngIf="!isCurrentJob(h) && (h.status === 'Processing' || h.status === 'Pending')" class="mini-progress">
+                    <div class="mini-progress-bar">
+                      <div class="mini-progress-fill" [style.width.%]="h.progress"></div>
+                    </div>
+                    <span class="mini-progress-text">{{ h.progress }}%</span>
+                  </div>
+                  <span *ngIf="!isCurrentJob(h) && h.status !== 'Processing' && h.status !== 'Pending'">{{ h.progress }}%</span>
+                </td>
+
+                <!-- Status -->
+                <td>
+                  <span [ngClass]="getHistoryStatusClass(h.status)">
+                    {{ h.status }}
+                  </span>
+                </td>
+
+                <!-- Total Rows -->
+                <td class="text-center">{{ h.totalRows }}</td>
+
+                <!-- Success -->
+                <td class="text-center">
+                  <span class="badge badge-success" *ngIf="h.successCount > 0">
+                    {{ h.successCount }}
+                  </span>
+                  <span *ngIf="h.successCount === 0">-</span>
+                </td>
+
+                <!-- Updated -->
+                <td class="text-center">
+                  <span class="badge badge-info" *ngIf="h.updatedCount > 0">
+                    {{ h.updatedCount }}
+                  </span>
+                  <span *ngIf="h.updatedCount === 0">-</span>
+                </td>
+
+                <!-- Skipped -->
+                <td class="text-center">
+                  <span class="badge badge-warning" *ngIf="h.skippedCount > 0">
+                    {{ h.skippedCount }}
+                  </span>
+                  <span *ngIf="h.skippedCount === 0">-</span>
+                </td>
+
+                <!-- Errors -->
+                <td class="text-center">
+                  <div *ngIf="h.errorCount > 0">
+                    <span class="badge badge-danger">{{ h.errorCount }}</span>
+                  </div>
+                  <span *ngIf="h.errorCount === 0">-</span>
+                </td>
+
+                <!-- Strategy -->
+                <td>
+                  <span class="strategy-badge" *ngIf="h.duplicateHandlingStrategy">
+                    {{ getStrategyDisplayName(h.duplicateHandlingStrategy) }}
+                  </span>
+                  <span *ngIf="!h.duplicateHandlingStrategy">-</span>
+                </td>
+
+                <!-- File Size -->
+                <td>{{ formatFileSize(h.fileSizeBytes) }}</td>
+
+                <!-- User -->
+                <td>{{ h.importedBy }}</td>
+
+                <!-- Actions -->
+                <td>
+                  <!-- For Exports: Download File -->
+                  <button *ngIf="h.operationType === 'Export' && h.status === 'Completed' && h.jobId"
+                          class="btn-download-error-report btn-sm"
+                          (click)="downloadExportFromHistory(h.id)"
+                          title="Download Export">
+                    <i class="fas fa-download"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- History Mobile Cards -->
+        <div *ngIf="!isLoadingHistory && history.length > 0 && isMobile" class="mobile-cards">
+          <div *ngFor="let h of history" class="mobile-card">
+            <div class="mobile-card-header">
+              <div class="mobile-card-title">
+                <span class="operation-badge" [class.import]="h.operationType === 'Import'" [class.export]="h.operationType === 'Export'">
+                  <i class="fas" [class.fa-upload]="h.operationType === 'Import'" [class.fa-download]="h.operationType === 'Export'"></i>
+                  {{ h.operationType }}
+                </span>
+                <span [ngClass]="getHistoryStatusClass(h.status)" class="status-badge-mobile">
+                  {{ h.status }}
+                </span>
+              </div>
+            </div>
+            <div class="mobile-card-body">
+              <div class="mobile-card-grid">
+                <div class="mobile-card-field">
+                  <span class="field-label">File Name</span>
+                  <span class="field-value">
+                    <i class="fas fa-file-excel"></i>
+                    {{ h.fileName }}
+                  </span>
+                </div>
+                <div class="mobile-card-field">
+                  <span class="field-label">Format</span>
+                  <span class="field-value">
+                    <span class="format-badge">{{ h.format }}</span>
+                  </span>
+                </div>
+                <div class="mobile-card-field">
+                  <span class="field-label">Date</span>
+                  <span class="field-value">{{ formatDateTime(h.createdAtUtc) }}</span>
+                </div>
+                <div class="mobile-card-field">
+                  <span class="field-label">Progress</span>
+                  <span class="field-value">
+                    <div *ngIf="isCurrentJob(h) || (h.status === 'Processing' || h.status === 'Pending')" class="mini-progress">
+                      <div class="mini-progress-bar">
+                        <div class="mini-progress-fill" [style.width.%]="h.progress"></div>
+                      </div>
+                      <span class="mini-progress-text">{{ h.progress }}%</span>
+                    </div>
+                    <span *ngIf="!isCurrentJob(h) && h.status !== 'Processing' && h.status !== 'Pending'">{{ h.progress }}%</span>
+                  </span>
+                </div>
+                <div class="mobile-card-field">
+                  <span class="field-label">Total Rows</span>
+                  <span class="field-value">{{ h.totalRows }}</span>
+                </div>
+                <div class="mobile-card-field">
+                  <span class="field-label">Success</span>
+                  <span class="field-value">
+                    <span class="badge badge-success" *ngIf="h.successCount > 0">{{ h.successCount }}</span>
+                    <span *ngIf="h.successCount === 0">-</span>
+                  </span>
+                </div>
+                <div class="mobile-card-field">
+                  <span class="field-label">Updated</span>
+                  <span class="field-value">
+                    <span class="badge badge-info" *ngIf="h.updatedCount > 0">{{ h.updatedCount }}</span>
+                    <span *ngIf="h.updatedCount === 0">-</span>
+                  </span>
+                </div>
+                <div class="mobile-card-field">
+                  <span class="field-label">Skipped</span>
+                  <span class="field-value">
+                    <span class="badge badge-warning" *ngIf="h.skippedCount > 0">{{ h.skippedCount }}</span>
+                    <span *ngIf="h.skippedCount === 0">-</span>
+                  </span>
+                </div>
+                <div class="mobile-card-field">
+                  <span class="field-label">Errors</span>
+                  <span class="field-value">
+                    <span class="badge badge-danger" *ngIf="h.errorCount > 0">{{ h.errorCount }}</span>
+                    <span *ngIf="h.errorCount === 0">-</span>
+                  </span>
+                </div>
+                <div class="mobile-card-field" *ngIf="h.duplicateHandlingStrategy">
+                  <span class="field-label">Strategy</span>
+                  <span class="field-value">
+                    <span class="strategy-badge">{{ getStrategyDisplayName(h.duplicateHandlingStrategy) }}</span>
+                  </span>
+                </div>
+                <div class="mobile-card-field">
+                  <span class="field-label">File Size</span>
+                  <span class="field-value">{{ formatFileSize(h.fileSizeBytes) }}</span>
+                </div>
+                <div class="mobile-card-field">
+                  <span class="field-label">User</span>
+                  <span class="field-value">{{ h.importedBy }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="mobile-card-actions" *ngIf="(h.operationType === 'Import' && h.errorReportId) || (h.operationType === 'Export' && h.status === 'Completed')">
+              <div class="quick-actions">
+                <button *ngIf="h.operationType === 'Import' && h.errorReportId"
+                        class="icon-btn action-download"
+                        (click)="downloadErrorReportForHistory(h.id)"
+                        title="Download Error Report">
+                  <i class="fas fa-file-csv"></i>
+                </button>
+                <button *ngIf="h.operationType === 'Export' && h.status === 'Completed'"
+                        class="icon-btn action-download"
+                        (click)="downloadExportFromHistory(h.id)"
+                        title="Download Export">
+                  <i class="fas fa-download"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pagination -->
+        <div *ngIf="!isLoadingHistory && historyTotalCount > historyPageSize" class="history-pagination">
+          <div class="pagination-info">
+            <span>
+              Showing {{ (historyPage - 1) * historyPageSize + 1 }} to
+              {{ Math.min(historyPage * historyPageSize, historyTotalCount) }} of
+              {{ historyTotalCount }} entries
+            </span>
+          </div>
+          <div class="pagination-controls">
+            <button class="btn btn-outline btn-sm" [disabled]="historyPage === 1"
+              (click)="goToHistoryPage(1)">
+              <i class="fas fa-angle-double-left"></i>
+            </button>
+            <button class="btn btn-outline btn-sm" [disabled]="historyPage === 1"
+              (click)="goToHistoryPage(historyPage - 1)">
+              <i class="fas fa-angle-left"></i>
+            </button>
+            <span class="page-info">
+              Page {{ historyPage }} of {{ getHistoryTotalPages() }}
+            </span>
+            <button class="btn btn-outline btn-sm" [disabled]="historyPage === getHistoryTotalPages()"
+              (click)="goToHistoryPage(historyPage + 1)">
+              <i class="fas fa-angle-right"></i>
+            </button>
+            <button class="btn btn-outline btn-sm" [disabled]="historyPage === getHistoryTotalPages()"
+              (click)="goToHistoryPage(getHistoryTotalPages())">
+              <i class="fas fa-angle-double-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-outline" (click)="closeHistoryDialog()">
+          <i class="fas fa-times"></i>
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Export Progress Dialog -->
+<div class="modal-overlay" *ngIf="showExportDialog">
+  <div class="modal modal-md">
+    <div class="modal-header">
+      <div class="header-content">
+        <div class="header-icon">
+          <i class="fas fa-download"></i>
+        </div>
+        <div class="header-text">
+          <h2>Export Progress</h2>
+          <p class="modal-subtitle">Your export is being processed</p>
+        </div>
+      </div>
+      <button class="btn-close" (click)="closeExportDialog()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="export-progress-container">
+        <!-- Status Icon -->
+        <div class="status-icon" [ngSwitch]="exportStatus">
+          <i *ngSwitchCase="'Pending'" class="fas fa-clock fa-3x text-warning"></i>
+          <i *ngSwitchCase="'Processing'" class="fas fa-spinner fa-spin fa-3x text-primary"></i>
+          <i *ngSwitchCase="'Completed'" class="fas fa-check-circle fa-3x text-success"></i>
+          <i *ngSwitchCase="'Failed'" class="fas fa-times-circle fa-3x text-danger"></i>
+        </div>
+
+        <!-- Status Text -->
+        <h3>{{ exportStatus }}</h3>
+
+        <!-- Progress Bar -->
+        <div class="progress-container" *ngIf="exportStatus === 'Processing' || exportStatus === 'Pending'">
+          <div class="progress-bar">
+            <div class="progress-fill" [style.width.%]="exportProgress"></div>
+          </div>
+          <p class="progress-text">{{ exportProgress }}%</p>
+        </div>
+
+        <!-- Message -->
+        <p class="export-message" *ngIf="exportStatus === 'Processing'">
+          Please wait while we generate your export file. This may take a few moments for large datasets.
+        </p>
+        <p class="export-message" *ngIf="exportStatus === 'Pending'">
+          Your export job is queued and will start shortly...
+        </p>
+        <p class="export-message text-success" *ngIf="exportStatus === 'Completed'">
+          Export completed successfully! Your file will download automatically.
+        </p>
+        <p class="export-message text-danger" *ngIf="exportStatus === 'Failed'">
+          Export failed. Please try again or check the history for details.
+        </p>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-outline" (click)="closeExportDialog()">
+        {{ exportStatus === 'Completed' || exportStatus === 'Failed' ? 'Close' : 'Run in Background' }}
+      </button>
+    </div>
+  </div>
+</div>

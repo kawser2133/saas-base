@@ -1,0 +1,201 @@
+<div class="profile-container">
+  <!-- Page Header -->
+  <div class="profile-header">
+    <div class="header-content">
+      <div class="header-left">
+        <div class="profile-avatar">
+          <!-- Avatar Image or Placeholder -->
+          <div class="avatar-wrapper">
+            <img *ngIf="profile?.avatar" [src]="profile?.avatar" alt="Profile Avatar" class="avatar-image" (error)="onImageError($event)">
+            <img *ngIf="!profile?.avatar" src="assets/default-avatar.svg" alt="Default Avatar" class="avatar-image">
+          </div>
+
+          <button class="avatar-edit-btn" type="button" (click)="fileInput.click()" [disabled]="uploadingAvatar" title="Change Avatar">
+            <i class="fas fa-camera" *ngIf="!uploadingAvatar"></i>
+            <i class="fas fa-spinner fa-spin" *ngIf="uploadingAvatar"></i>
+          </button>
+          <button class="avatar-remove-btn" type="button" (click)="removeAvatar()" [disabled]="uploadingAvatar || !profile?.avatar" title="Remove Avatar">
+            <i class="fas fa-trash"></i>
+          </button>
+          <input #fileInput type="file" accept="image/*" (change)="onAvatarChange($event)" style="display: none;">
+        </div>
+        <div class="header-info">
+          <h1 class="profile-name">{{ profile?.firstName }} {{ profile?.lastName }}</h1>
+          <p class="profile-position">{{ profile?.jobTitle || 'No position set' }} · {{ profile?.department || 'No department' }}</p>
+          <div class="profile-meta">
+            <span class="meta-item">
+              <i class="fas fa-map-marker-alt"></i>
+              {{ profile?.location || 'No location' }}
+            </span>
+            <span class="meta-item">
+              <i class="fas fa-envelope"></i>
+              {{ profile?.email }}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" type="button" (click)="reset()" [disabled]="saving">
+          <i class="fas fa-undo"></i>
+          Reset Changes
+        </button>
+        <button class="btn btn-primary" type="submit" form="profileForm" [disabled]="saving">
+          <i class="fas fa-save"></i>
+          {{ saving ? 'Saving...' : 'Save Profile' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Form -->
+  <form id="profileForm" (ngSubmit)="save()" *ngIf="profile" class="profile-form">
+    <!-- Personal Information Card -->
+    <div class="info-card">
+      <div class="card-header">
+        <div class="card-header-content">
+          <div class="card-icon personal">
+            <i class="fas fa-user"></i>
+          </div>
+          <div>
+            <h2 class="card-title">Personal Information</h2>
+            <p class="card-subtitle">Update your personal details and contact information</p>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="form-row">
+          <div class="form-field">
+            <label class="field-label">First Name</label>
+            <input
+              type="text"
+              class="field-input"
+              [(ngModel)]="edit.firstName"
+              name="firstName"
+              placeholder="Enter your first name"
+              required
+            />
+          </div>
+          <div class="form-field">
+            <label class="field-label">Last Name</label>
+            <input
+              type="text"
+              class="field-input"
+              [(ngModel)]="edit.lastName"
+              name="lastName"
+              placeholder="Enter your last name"
+              required
+            />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label class="field-label">Email Address</label>
+            <input
+              type="email"
+              class="field-input"
+              [(ngModel)]="edit.email"
+              name="email"
+              placeholder="your.email@company.com"
+              readonly
+              disabled
+            />
+          </div>
+          <div class="form-field">
+            <label class="field-label">Phone Number</label>
+            <input
+              type="tel"
+              class="field-input"
+              [(ngModel)]="edit.phoneNumber"
+              name="phoneNumber"
+              placeholder="+1 (555) 000-0000"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Work Information Card -->
+    <div class="info-card">
+      <div class="card-header">
+        <div class="card-header-content">
+          <div class="card-icon work">
+            <i class="fas fa-briefcase"></i>
+          </div>
+          <div>
+            <h2 class="card-title">Work Information</h2>
+            <p class="card-subtitle">Manage your professional details and workplace data</p>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="form-row">
+          <div class="form-field">
+            <label class="field-label">Employee ID</label>
+            <input
+              type="text"
+              class="field-input"
+              [value]="profile.employeeId || 'N/A'"
+              name="employeeId"
+              placeholder="Employee ID"
+              readonly
+              disabled
+            />
+          </div>
+          <div class="form-field">
+            <label class="field-label">Office Location</label>
+            <select class="field-input" [(ngModel)]="edit.location" name="location">
+              <option value="">Select office location</option>
+              <option *ngFor="let location of locations" [value]="location">{{ location }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label class="field-label">Department</label>
+            <select class="field-input" [(ngModel)]="edit.department" name="department">
+              <option value="">Select department</option>
+              <option *ngFor="let department of departments" [value]="department">{{ department }}</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="field-label">Job Title</label>
+            <select class="field-input" [(ngModel)]="edit.jobTitle" name="jobTitle">
+              <option value="">Select job title</option>
+              <option *ngFor="let position of positions" [value]="position">{{ position }}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bio Card -->
+    <div class="info-card">
+      <div class="card-header">
+        <div class="card-header-content">
+          <div class="card-icon notes">
+            <i class="fas fa-file-alt"></i>
+          </div>
+          <div>
+            <h2 class="card-title">About Me</h2>
+            <p class="card-subtitle">Share a brief description about yourself</p>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="form-field full-width">
+          <label class="field-label">Bio</label>
+          <textarea
+            class="field-textarea"
+            [(ngModel)]="edit.notes"
+            name="notes"
+            placeholder="Tell us about yourself..."
+            rows="4"
+          ></textarea>
+          <span class="field-hint">A brief description of your professional background and interests</span>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+

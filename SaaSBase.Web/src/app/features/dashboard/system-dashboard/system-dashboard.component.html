@@ -1,0 +1,134 @@
+<div class="system-dashboard">
+  <!-- System Dashboard Header -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <div class="title-section">
+        <h1 class="dashboard-title">
+          <i class="fas fa-globe"></i>
+          System Dashboard
+        </h1>
+        <p class="dashboard-subtitle">Monitor all organizations and system-wide metrics</p>
+      </div>
+      <div class="header-actions">
+        <a routerLink="/system/organizations" class="btn btn-primary">
+          <i class="fas fa-building"></i>
+          Manage Organizations
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- System KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <div class="kpi-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+          <i class="fas fa-building"></i>
+        </div>
+        <div class="kpi-title">Total Organizations</div>
+      </div>
+      <div class="kpi-value">{{ stats.totalOrganizations }}</div>
+      <div class="kpi-trend">
+        <i class="fas fa-info-circle"></i>
+        <span>{{ stats.activeOrganizations }} active</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <div class="kpi-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="kpi-title">Total Users</div>
+      </div>
+      <div class="kpi-value">{{ stats.totalUsers }}</div>
+      <div class="kpi-trend">
+        <i class="fas fa-info-circle"></i>
+        <span>Across all organizations</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <div class="kpi-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <div class="kpi-title">Active Sessions</div>
+      </div>
+      <div class="kpi-value">{{ stats.activeSessions }}</div>
+      <div class="kpi-trend">
+        <i class="fas fa-info-circle"></i>
+        <span>Current active sessions</span>
+      </div>
+    </div>
+
+    
+  </div>
+
+  <!-- Charts Section -->
+  <div class="charts-section">
+    <!-- Organization Row -->
+    <div class="chart-row">
+      <div class="chart-card">
+        <div class="card-header">
+          <div class="card-title">
+            <h3>
+              <i class="fas fa-chart-line"></i>
+              Organization Registration Trend
+            </h3>
+            <p>New organizations registered over the last 12 months</p>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas baseChart
+                  [data]="orgTrendChartData"
+                  [options]="orgTrendChartOptions"
+                  type="line">
+          </canvas>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="card-header">
+          <div class="card-title">
+            <h3>
+              <i class="fas fa-chart-pie"></i>
+              Organizations Status
+            </h3>
+            <p>Active vs Inactive organizations</p>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas baseChart
+                  [data]="orgActiveInactiveChartData"
+                  [options]="orgActiveInactiveChartOptions"
+                  type="pie">
+          </canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Row -->
+    <div class="chart-row">
+      <div class="chart-card full-width">
+        <div class="card-header">
+          <div class="card-title">
+            <h3>
+              <i class="fas fa-user-chart"></i>
+              User Growth Trend
+            </h3>
+            <p>New users registered over the last 12 months</p>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas baseChart
+                  [data]="userGrowthChartData"
+                  [options]="userGrowthChartOptions"
+                  type="line">
+          </canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

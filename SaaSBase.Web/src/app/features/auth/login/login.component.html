@@ -1,0 +1,147 @@
+<div class="login-page">
+  <app-notification-container></app-notification-container>
+  
+  <div class="login-content">
+    <div class="login-container">
+      <div class="login-card">
+        <div class="card-header">
+          <app-brand-logo size="lg" [showText]="true" linkTo="/" variant="gradient"></app-brand-logo>
+          <h1 *ngIf="!requiresMfa">Welcome Back</h1>
+          <h1 *ngIf="requiresMfa">Verify Identity</h1>
+          <p *ngIf="requiresMfa" class="mfa-description">
+            <span *ngIf="selectedMfaMethod === 'SMS' && phoneNumberMasked">
+              Enter the verification code sent to {{ phoneNumberMasked }}
+            </span>
+            <span *ngIf="selectedMfaMethod === 'EMAIL' && emailMasked">
+              Enter the verification code sent to {{ emailMasked }}
+            </span>
+            <span *ngIf="selectedMfaMethod === 'BACKUPCODE'">
+              Enter a backup code you saved earlier
+            </span>
+            <span *ngIf="(selectedMfaMethod === 'SMS' && !phoneNumberMasked) || (selectedMfaMethod === 'EMAIL' && !emailMasked)">
+              Enter the verification code sent to your {{ selectedMfaMethod === 'SMS' ? 'phone' : selectedMfaMethod === 'EMAIL' ? 'email' : 'device' }}
+            </span>
+          </p>
+        </div>
+
+    <!-- MFA Verification Form -->
+    <div *ngIf="requiresMfa" class="mfa-verification">
+      <div class="field">
+        <label>
+          Verification Method
+          <span *ngIf="enabledMfaMethods.length > 1" class="method-count">({{ enabledMfaMethods.length }} options available)</span>
+        </label>
+        <div class="input">
+          <i class="fas fa-shield-alt"></i>
+          <select [(ngModel)]="selectedMfaMethod" name="mfaMethod" class="form-control" (change)="onMfaMethodChange()">
+            <option *ngFor="let method of enabledMfaMethods" [value]="method">
+              {{ method === 'SMS' ? 'SMS' : method === 'EMAIL' ? 'Email' : method === 'BACKUPCODE' ? 'Backup Code' : method }}
+            </option>
+          </select>
+        </div>
+        <!-- <p *ngIf="enabledMfaMethods.length > 1" class="field-hint">
+          <i class="fas fa-info-circle"></i> You can change the verification method using the dropdown above
+        </p> -->
+      </div>
+
+      <div class="field">
+        <label>Verification Code</label>
+        <div class="input">
+          <i class="fas fa-key"></i>
+          <input 
+            type="text" 
+            [(ngModel)]="mfaCode" 
+            name="mfaCode" 
+            placeholder="Enter verification code" 
+            maxlength="10"
+            (keyup.enter)="verifyMfaCode()"
+            autofocus
+          />
+        </div>
+      </div>
+
+      <div class="mfa-actions">
+        <button 
+          type="button" 
+          class="btn btn-outline" 
+          (click)="sendMfaCode()" 
+          [disabled]="isSendingMfaCode || (selectedMfaMethod.toUpperCase() === 'BACKUPCODE')"
+          [title]="(selectedMfaMethod.toUpperCase() === 'BACKUPCODE') ? 'Backup codes are pre-generated and cannot be resent' : ''">
+          <i class="fas fa-paper-plane"></i>
+          <span>{{ isSendingMfaCode ? 'Sending...' : 'Resend Code' }}</span>
+        </button>
+        <button type="button" class="btn btn-primary btn-lg" (click)="verifyMfaCode()" [disabled]="isVerifyingMfa || !mfaCode" [style.width]="(selectedMfaMethod.toUpperCase() === 'BACKUPCODE') ? '100%' : 'auto'">
+          <i class="fas fa-check"></i>
+          <span>{{ isVerifyingMfa ? 'Verifying...' : 'Verify' }}</span>
+        </button>
+      </div>
+
+      <div class="actions">
+        <a class="link" (click)="goBackToLogin()">
+          <i class="fas fa-arrow-left"></i> Back to login
+        </a>
+      </div>
+    </div>
+
+    <!-- Normal Login Form -->
+    <form *ngIf="!requiresMfa" (ngSubmit)="submit(form, $event)" #form="ngForm" class="form">
+      <div class="field">
+        <label>Email</label>
+        <div class="input" [class.error]="formErrors['email']">
+          <i class="fas fa-envelope"></i>
+          <input 
+            type="email" 
+            [(ngModel)]="credentials.email" 
+            name="email" 
+            placeholder="you@company.com" 
+            required 
+            #emailInput="ngModel"
+            [class.is-invalid]="formErrors['email']"
+          />
+        </div>
+        <div class="field-error" *ngIf="formErrors['email']">
+          <i class="fas fa-exclamation-circle"></i>
+          {{ formErrors['email'] }}
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Password</label>
+        <div class="input" [class.error]="formErrors['password']">
+          <i class="fas fa-lock"></i>
+          <input 
+            [type]="showPassword ? 'text' : 'password'" 
+            [(ngModel)]="credentials.password" 
+            name="password" 
+            placeholder="••••••••" 
+            required 
+            #passwordInput="ngModel"
+            [class.is-invalid]="formErrors['password']"
+          />
+          <button 
+            type="button" 
+            class="password-toggle"
+            (click)="showPassword = !showPassword"
+            tabindex="-1">
+            <i class="fas" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword"></i>
+          </button>
+        </div>
+        <div class="field-error" *ngIf="formErrors['password']">
+          <i class="fas fa-exclamation-circle"></i>
+          {{ formErrors['password'] }}
+        </div>
+      </div>
+
+      <div class="actions">
+        <a class="link" (click)="goToForgotPassword()">Forgot password?</a>
+      </div>
+
+      <button class="btn btn-primary btn-lg submit" [disabled]="isSubmitting">
+        <i class="fas fa-sign-in-alt"></i>
+        <span>Sign in</span>
+      </button>
+    </form>
+
+  </div>
+</div>
+

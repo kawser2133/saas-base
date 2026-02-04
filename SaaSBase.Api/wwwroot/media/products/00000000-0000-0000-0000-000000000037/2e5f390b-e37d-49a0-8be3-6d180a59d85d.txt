@@ -1,0 +1,18 @@
+Service:
+
+FSMMS Portal - https://github.com/giga-tech/food-fsmms-portal/tree/dg-food-delivery
+FFP Portal - https://github.com/giga-tech/food-ffp-portal/tree/dg-food-delivery
+
+FFP API - https://github.com/giga-tech/food-ffp-api/tree/dg-food-delivery
+FFP API New Repo - https://github.com/giga-tech/dg-food-ffp-api
+
+OMS API - https://github.com/giga-tech/food-oms-api/tree/dg-food-delivery
+OMS Portal - https://github.com/giga-tech/food-oms-portal/tree/dg-food-delivery
+Top-Management Dashboard - https://github.com/giga-tech/fsmms-dashboard/tree/dg-food-delivery
+FPO Portal (Backend) - https://github.com/giga-tech/fsmms-program-operator/tree/dg-food-delivery
+
+FPO Reporter - https://github.com/giga-tech/fsmms-reporter/tree/dg-food-delivery
+SMS Aggregator Service - https://github.com/giga-tech/fsmms-sms-service/tree/dg-food-delivery
+NID Verification Service - https://github.com/giga-tech/nid-verification-service/tree/dg-food-delivery
+
+

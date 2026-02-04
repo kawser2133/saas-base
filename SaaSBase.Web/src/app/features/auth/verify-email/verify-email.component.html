@@ -1,0 +1,22 @@
+<div class="verify-page">
+	<app-notification-container></app-notification-container>
+	
+	<div class="verify-content">
+		<div class="verify-container">
+			<div class="verify-card">
+				<div class="card-header">
+					<app-brand-logo size="lg" [showText]="true" linkTo="/" variant="gradient"></app-brand-logo>
+					<h1>Verify Email</h1>
+					<p>{{ isVerifying ? 'Verifying email...' : message }}</p>
+				</div>
+				
+				<div class="verify-actions" *ngIf="!isVerifying">
+					<button class="btn btn-primary btn-lg" (click)="goToLogin()">
+						<i class="fas fa-sign-in-alt"></i>
+						<span>Go to Login</span>
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

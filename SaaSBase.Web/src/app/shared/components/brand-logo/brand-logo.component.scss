@@ -1,0 +1,124 @@
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+
+  &:hover {
+    opacity: 0.85;
+    transform: translateY(-1px);
+
+    .logo-icon {
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(var(--primary-rgb), 0.3);
+    }
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.logo-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary-600, #2563eb), var(--primary-700, #1d4ed8));
+  color: white;
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.2);
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.brand-name {
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  white-space: nowrap;
+  transition: color 0.3s ease;
+  display: inline-flex;
+}
+
+.brand-name-saas {
+  color: var(--primary-600, #2563eb);
+}
+
+.brand-name-base {
+  color: #000000; // Black color for testing
+}
+
+// Size variants
+.size-sm {
+  gap: 6px;
+
+  .logo-icon {
+    width: 28px;
+    height: 28px;
+    font-size: var(--text-sm);
+    border-radius: var(--radius-sm);
+  }
+
+  .brand-name {
+    font-size: var(--text-sm);
+  }
+}
+
+.size-md {
+  gap: var(--space-2);
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    font-size: var(--text-base);
+    border-radius: var(--radius-md);
+  }
+
+  .brand-name {
+    font-size: var(--text-lg);
+  }
+}
+
+.size-lg {
+  gap: var(--space-3);
+
+  .logo-icon {
+    width: 48px;
+    height: 48px;
+    font-size: var(--text-xl);
+    border-radius: var(--radius-lg);
+  }
+
+  .brand-name {
+    font-size: var(--text-xl);
+  }
+}
+
+// Variant: gradient text
+.variant-gradient .brand-name-saas {
+  background: linear-gradient(135deg, var(--primary-600, #2563eb), var(--primary-400, #60a5fa));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent !important; // Ensure no fallback black color shows
+}
+
+.variant-gradient .brand-name-base {
+  color: #000000 !important; // Keep Base black even in gradient variant
+}
+
+@media (max-width: 480px) {
+  .size-md .brand-name,
+  .size-lg .brand-name {
+    font-size: var(--text-base);
+  }
+
+  .size-md .logo-icon,
+  .size-lg .logo-icon {
+    width: 32px;
+    height: 32px;
+    font-size: var(--text-sm);
+  }
+}

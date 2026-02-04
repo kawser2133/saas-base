@@ -1,0 +1,296 @@
+<div class="setup-page">
+  <app-public-header></app-public-header>
+  <app-notification-container></app-notification-container>
+  
+  <div class="setup-wrapper">
+    <div class="setup-container">
+    <!-- Header -->
+    <div class="setup-header">
+      <h3>Organization Setup</h3>
+    </div>
+
+    <!-- Progress Steps -->
+    <div class="steps-container">
+      <div class="steps-list">
+        <div 
+          *ngFor="let step of steps; let i = index" 
+          class="step-item"
+          [class.active]="currentStep === i + 1"
+          [class.completed]="currentStep > i + 1"
+          (click)="goToStep(i + 1)">
+          <div class="step-number">
+            <i *ngIf="currentStep > i + 1" class="fas fa-check"></i>
+            <span *ngIf="currentStep <= i + 1">{{ i + 1 }}</span>
+          </div>
+          <div class="step-info">
+            <div class="step-title">{{ step.title }}</div>
+            <div class="step-description">{{ step.description }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form Content -->
+    <div class="setup-content">
+      <!-- Step 1: Organization Info -->
+      <div *ngIf="currentStep === 1" class="step-content">
+        <form [formGroup]="organizationForm" class="setup-form">
+          <div class="form-group">
+            <label>Organization Name <span class="required">*</span></label>
+            <input 
+              type="text" 
+              formControlName="name"
+              placeholder="Enter organization name"
+              [class.error]="getFieldError(organizationForm, 'name')">
+            <div class="error-message" *ngIf="getFieldError(organizationForm, 'name')">
+              {{ getFieldError(organizationForm, 'name') }}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Description</label>
+            <textarea 
+              formControlName="description"
+              placeholder="Brief description of your organization"
+              rows="4"></textarea>
+          </div>
+        </form>
+      </div>
+
+      <!-- Step 2: Admin Account -->
+      <div *ngIf="currentStep === 2" class="step-content">
+        <form [formGroup]="adminForm" class="setup-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label>First Name <span class="required">*</span></label>
+              <input 
+                type="text" 
+                formControlName="firstName"
+                placeholder="John"
+                [class.error]="getFieldError(adminForm, 'firstName')">
+              <div class="error-message" *ngIf="getFieldError(adminForm, 'firstName')">
+                {{ getFieldError(adminForm, 'firstName') }}
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Last Name <span class="required">*</span></label>
+              <input 
+                type="text" 
+                formControlName="lastName"
+                placeholder="Doe"
+                [class.error]="getFieldError(adminForm, 'lastName')">
+              <div class="error-message" *ngIf="getFieldError(adminForm, 'lastName')">
+                {{ getFieldError(adminForm, 'lastName') }}
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Email <span class="required">*</span></label>
+            <input 
+              type="email" 
+              formControlName="email"
+              placeholder="admin@organization.com"
+              [class.error]="getFieldError(adminForm, 'email')">
+            <div class="error-message" *ngIf="getFieldError(adminForm, 'email')">
+              {{ getFieldError(adminForm, 'email') }}
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Password <span class="required">*</span></label>
+              <div class="input-wrapper">
+                <input 
+                  [type]="showPassword ? 'text' : 'password'" 
+                  formControlName="password"
+                  placeholder="Minimum 8 characters"
+                  [class.error]="getFieldError(adminForm, 'password')">
+                <button 
+                  type="button" 
+                  class="password-toggle"
+                  (click)="showPassword = !showPassword"
+                  tabindex="-1"
+                  aria-label="Toggle password visibility">
+                  <i class="fas" [class.fa-eye]="!showPassword" [class.fa-eye-slash]="showPassword"></i>
+                </button>
+              </div>
+              <div class="error-message" *ngIf="getFieldError(adminForm, 'password')">
+                {{ getFieldError(adminForm, 'password') }}
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Confirm Password <span class="required">*</span></label>
+              <div class="input-wrapper">
+                <input 
+                  [type]="showConfirmPassword ? 'text' : 'password'" 
+                  formControlName="confirmPassword"
+                  placeholder="Re-enter password"
+                  [class.error]="getFieldError(adminForm, 'confirmPassword')">
+                <button 
+                  type="button" 
+                  class="password-toggle"
+                  (click)="showConfirmPassword = !showConfirmPassword"
+                  tabindex="-1"
+                  aria-label="Toggle confirm password visibility">
+                  <i class="fas" [class.fa-eye]="!showConfirmPassword" [class.fa-eye-slash]="showConfirmPassword"></i>
+                </button>
+              </div>
+              <div class="error-message" *ngIf="getFieldError(adminForm, 'confirmPassword')">
+                {{ getFieldError(adminForm, 'confirmPassword') }}
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Step 3: Contact Details -->
+      <div *ngIf="currentStep === 3" class="step-content">
+        <form [formGroup]="contactForm" class="setup-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Email</label>
+              <input 
+                type="email" 
+                formControlName="email"
+                placeholder="contact@organization.com">
+            </div>
+
+            <div class="form-group">
+              <label>Phone</label>
+              <input 
+                type="tel" 
+                formControlName="phone"
+                placeholder="+1 (555) 123-4567">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Address</label>
+            <input 
+              type="text" 
+              formControlName="address"
+              placeholder="Street address">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>City</label>
+              <input 
+                type="text" 
+                formControlName="city"
+                placeholder="City">
+            </div>
+
+            <div class="form-group">
+              <label>State/Province</label>
+              <input 
+                type="text" 
+                formControlName="state"
+                placeholder="State">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Country</label>
+              <input 
+                type="text" 
+                formControlName="country"
+                placeholder="Country">
+            </div>
+
+            <div class="form-group">
+              <label>Postal Code</label>
+              <input 
+                type="text" 
+                formControlName="postalCode"
+                placeholder="ZIP/Postal Code">
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Step 4: Review -->
+      <div *ngIf="currentStep === 4" class="step-content">
+        <div class="review-section">
+          <div class="review-card">
+            <h3>Organization</h3>
+            <div class="review-item">
+              <span class="label">Name:</span>
+              <span class="value">{{ organizationForm.value.name }}</span>
+            </div>
+            <div class="review-item" *ngIf="organizationForm.value.description">
+              <span class="label">Description:</span>
+              <span class="value">{{ organizationForm.value.description }}</span>
+            </div>
+          </div>
+
+          <div class="review-card">
+            <h3>Administrator</h3>
+            <div class="review-item">
+              <span class="label">Name:</span>
+              <span class="value">{{ adminForm.value.firstName }} {{ adminForm.value.lastName }}</span>
+            </div>
+            <div class="review-item">
+              <span class="label">Email:</span>
+              <span class="value">{{ adminForm.value.email }}</span>
+            </div>
+          </div>
+
+            <div class="review-card" *ngIf="contactForm.value.email || contactForm.value.phone">
+              <h3>Contact</h3>
+              <div class="review-item" *ngIf="contactForm.value.email">
+                <span class="label">Email:</span>
+                <span class="value">{{ contactForm.value.email }}</span>
+              </div>
+              <div class="review-item" *ngIf="contactForm.value.phone">
+                <span class="label">Phone:</span>
+                <span class="value">{{ contactForm.value.phone }}</span>
+              </div>
+            </div>
+            
+          </div>
+        </div>
+    </div>
+
+    <!-- Navigation Buttons -->
+    <div class="setup-actions">
+      <button 
+        *ngIf="currentStep > 1"
+        class="btn btn-outline" 
+        (click)="previousStep()"
+        [disabled]="isSubmitting">
+        <i class="fas fa-arrow-left"></i>
+        Previous
+      </button>
+      
+      <div class="actions-right">
+        <button 
+          *ngIf="currentStep < totalSteps"
+          class="btn btn-primary" 
+          (click)="nextStep()"
+          [disabled]="isSubmitting">
+          Next
+          <i class="fas fa-arrow-right"></i>
+        </button>
+        
+        <button 
+          *ngIf="currentStep === totalSteps"
+          class="btn btn-primary" 
+          (click)="submit()"
+          [disabled]="isSubmitting">
+          <i class="fas fa-check" *ngIf="!isSubmitting"></i>
+          <i class="fas fa-spinner fa-spin" *ngIf="isSubmitting"></i>
+          {{ isSubmitting ? 'Setting up...' : 'Complete Setup' }}
+        </button>
+      </div>
+    </div>
+  </div>
+  </div>
+  
+  <app-public-footer></app-public-footer>
+</div>
+

@@ -1,0 +1,1415 @@
+<div class="positions-page" (click)="onMainPageClick($event)">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-surface">
+      <app-breadcrumb></app-breadcrumb>
+
+      <div class="header-main">
+        <div class="title-block">
+          <div class="title-content">
+            <h1 class="page-title">Position Management</h1>
+            <p class="page-description">Manage organizational positions</p>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <div class="header-stats">
+            <div class="stat-card">
+              <div class="stat-icon">
+                <i class="fas fa-briefcase"></i>
+              </div>
+              <div class="stat-content">
+                <span class="stat-value">{{ statistics.total }}</span>
+                <span class="stat-label">Total</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon stat-icon-success">
+                <i class="fas fa-check-circle"></i>
+              </div>
+              <div class="stat-content">
+                <span class="stat-value">{{ statistics.active }}</span>
+                <span class="stat-label">Active</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon stat-icon-warning">
+                <i class="fas fa-times-circle"></i>
+              </div>
+              <div class="stat-content">
+                <span class="stat-value">{{ statistics.inactive }}</span>
+                <span class="stat-label">Inactive</span>
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-primary" type="button" (click)="openAddDialog()" *hasPermission="'Positions.Create'">
+            <i class="fas fa-plus"></i>
+            <span>Add New Position</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Search and Filter Bar -->
+  <div class="search-filter-section" (click)="onMainPageClick($event)">
+    <div class="search-filter-content">
+      <div class="search-section">
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input type="text" [(ngModel)]="searchQuery" (input)="onSearch()" (focus)="onFormFieldFocus()"
+            placeholder="Search by code, name, or manager..." class="search-input">
+          <span class="search-count" *ngIf="searchQuery">{{ totalItems }} results</span>
+        </div>
+      </div>
+
+      <div class="filter-actions">
+        <button class="btn btn-outline" type="button" (click)="refreshData()" [disabled]="isLoading"
+          title="Refresh data">
+          <i class="fas" [class.fa-sync-alt]="!isLoading" [class.fa-spinner]="isLoading"
+            [class.fa-spin]="isLoading"></i>
+        </button>
+
+        <button class="btn btn-filter" [class.btn-filter-active]="showFilters" (click)="showFilters = !showFilters" title="Filters">
+          <i class="fas fa-filter"></i>
+          <span class="filter-badge" *ngIf="activeFilterCount > 0">{{ activeFilterCount }}</span>
+        </button>
+
+        <button *hasPermission="'Positions.Import'" class="btn btn-outline" type="button" (click)="openImportDialog()" title="Import">
+          <i class="fas fa-file-import"></i>
+        </button>
+
+        <div class="dropdown" *hasPermission="'Positions.Export'">
+          <button class="btn btn-outline dropdown-toggle" type="button" (click)="toggleExportDropdown()" title="Export">
+            <i class="fas fa-download"></i>
+            <span class="filter-badge" *ngIf="selectedItems.size > 0" >{{ selectedItems.size }}</span>
+          </button>
+          <div class="dropdown-menu" *ngIf="exportDropdownOpen">
+            <a class="dropdown-item" (click)="startAsyncExport('excel'); exportDropdownOpen = false">
+              <i class="fas fa-file-excel text-success"></i> Export as Excel
+            </a>
+            <a class="dropdown-item" (click)="startAsyncExport('csv'); exportDropdownOpen = false">
+              <i class="fas fa-file-csv text-info"></i> Export as CSV
+            </a>
+            <a class="dropdown-item" (click)="startAsyncExport('pdf'); exportDropdownOpen = false">
+              <i class="fas fa-file-pdf text-danger"></i> Export as PDF
+            </a>
+            <a class="dropdown-item" (click)="startAsyncExport('json'); exportDropdownOpen = false">
+              <i class="fas fa-file-code text-primary"></i> Export as JSON
+            </a>
+          </div>
+        </div>
+
+        <button class="btn btn-outline" type="button" (click)="openImportHistoryDialog()" title="History">
+          <i class="fas fa-history"></i>
+        </button>
+
+        <ng-container *hasPermission="'Positions.Create'">
+          <button *ngIf="selectedItems.size > 0" class="btn btn-outline" (click)="cloneSelected()" title="Clone">
+            <i class="fas fa-copy"></i>
+            <span class="filter-badge">{{ selectedItems.size }}</span>
+          </button>
+        </ng-container>
+        <ng-container *hasPermission="'Positions.Delete'">
+          <button *ngIf="selectedItems.size > 0" class="btn btn-outline" (click)="openDeleteDialog(getSelectedItems())"  title="Delete">
+            <i class="fas fa-trash"></i>
+            <span class="filter-badge">{{ selectedItems.size }}</span>
+          </button>
+        </ng-container>
+      </div>
+    </div>
+
+    <!-- Filter Panel -->
+    <div class="filter-panel" *ngIf="showFilters">
+      <div class="filter-panel-header">
+        <div class="filter-title-section">
+          <i class="fas fa-sliders-h"></i>
+          <h3>Advanced Filters</h3>
+          <span class="filter-count" *ngIf="activeFilterCount > 0">{{ activeFilterCount }} active</span>
+        </div>
+        <button class="btn btn-sm btn-clear" (click)="clearFilters()" *ngIf="activeFilterCount > 0">
+          <i class="fas fa-undo"></i>
+          <span>Reset Filters</span>
+        </button>
+      </div>
+
+      <div class="filter-grid">
+        <div class="filter-group" *ngIf="isSystemAdmin">
+          <label>Company</label>
+          <div class="searchable-dropdown">
+            <div class="dropdown-trigger"
+              (click)="toggleSearchableDropdown('filter-organizationId'); $event.stopPropagation()">
+              <span class="dropdown-value">{{ getFilterDisplayValue('organizationId') || 'All Companies' }}</span>
+              <i 
+                *ngIf="hasDropdownValue('filter-organizationId')"
+                class="fas fa-times clear-icon"
+                (click)="clearDropdownValue('filter-organizationId', $event)"
+                title="Clear selection"
+              ></i>
+              <i class="dropdown-icon"></i>
+            </div>
+
+            <div class="dropdown-menu" *ngIf="dropdownStates['filter-organizationId']?.isOpen">
+              <div class="search-input-container">
+                <input type="text" class="search-input" placeholder="Search companies..."
+                  [value]="dropdownStates['filter-organizationId'].searchTerm"
+                  (input)="onSearchInput('filter-organizationId', $event)">
+                <i class="search-icon"></i>
+              </div>
+
+              <div class="dropdown-options">
+                <div class="dropdown-option" [class.selected]="!filterFormData.organizationId"
+                  (click)="selectFilterOption('organizationId', '')">
+                  All Companies
+                  <i *ngIf="!filterFormData.organizationId" class="fas fa-check selected-icon"></i>
+                </div>
+                <div *ngFor="let org of dropdownStates['filter-organizationId']?.filteredOptions" class="dropdown-option"
+                  [class.selected]="filterFormData.organizationId === org.id"
+                  (click)="selectFilterOption('organizationId', org.id)">
+                  {{ org.name }}
+                  <i *ngIf="filterFormData.organizationId === org.id" class="fas fa-check selected-icon"></i>
+                </div>
+                <div *ngIf="dropdownStates['filter-organizationId']?.filteredOptions?.length === 0" class="no-results">
+                  No companies found
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <label>Status</label>
+          <div class="searchable-dropdown">
+            <div class="dropdown-trigger" (click)="toggleSearchableDropdown('filter-status'); $event.stopPropagation()">
+              <span class="dropdown-value">
+                {{ filterFormData.status === 'true' ? 'Active' : filterFormData.status === 'false' ? 'Inactive' : 'All
+                Statuses' }}
+              </span>
+              <i 
+                *ngIf="hasDropdownValue('filter-status')"
+                class="fas fa-times clear-icon"
+                (click)="clearDropdownValue('filter-status', $event)"
+                title="Clear selection"
+              ></i>
+              <i class="dropdown-icon"></i>
+            </div>
+
+            <div class="dropdown-menu" *ngIf="dropdownStates['filter-status']?.isOpen">
+              <div class="dropdown-options">
+                <div class="dropdown-option" [class.selected]="!filterFormData.status"
+                  (click)="selectFilterOption('status', '')">
+                  All Statuses
+                  <i *ngIf="!filterFormData.status" class="fas fa-check selected-icon"></i>
+                </div>
+                <div class="dropdown-option" [class.selected]="filterFormData.status === 'true'"
+                  (click)="selectFilterOption('status', 'true')">
+                  Active
+                  <i *ngIf="filterFormData.status === 'true'" class="fas fa-check selected-icon"></i>
+                </div>
+                <div class="dropdown-option" [class.selected]="filterFormData.status === 'false'"
+                  (click)="selectFilterOption('status', 'false')">
+                  Inactive
+                  <i *ngIf="filterFormData.status === 'false'" class="fas fa-check selected-icon"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <label>Created From</label>
+          <input type="date" class="form-control" [(ngModel)]="filterFormData.createdFrom" name="createdFrom"
+            (change)="filters.createdFrom = filterFormData.createdFrom; loadData()">
+        </div>
+
+        <div class="filter-group">
+          <label>Created To</label>
+          <input type="date" class="form-control" [(ngModel)]="filterFormData.createdTo" name="createdTo"
+            (change)="filters.createdTo = filterFormData.createdTo; loadData()">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Display -->
+  <div class="data-display" (click)="onMainPageClick($event)">
+    <!-- Desktop Table View -->
+    <div class="table-container" *ngIf="!isMobile">
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="checkbox-column">
+                <input type="checkbox" [checked]="isAllSelected()" (change)="masterToggle()" class="form-check-input">
+              </th>
+              <th class="sortable" (click)="sortData('name')">
+                Position Info
+                <i class="fas fa-sort" *ngIf="sortField !== 'name'"></i>
+                <i class="fas fa-sort-up" *ngIf="sortField === 'name' && sortDirection === 'asc'"></i>
+                <i class="fas fa-sort-down" *ngIf="sortField === 'name' && sortDirection === 'desc'"></i>
+              </th>
+              <th class="sortable" (click)="sortData('status')">
+                Status
+                <i class="fas fa-sort" *ngIf="sortField !== 'status'"></i>
+                <i class="fas fa-sort-up" *ngIf="sortField === 'status' && sortDirection === 'asc'"></i>
+                <i class="fas fa-sort-down" *ngIf="sortField === 'status' && sortDirection === 'desc'"></i>
+              </th>
+              <th class="sortable" (click)="sortData('level')">
+                Level
+                <i class="fas fa-sort" *ngIf="sortField !== 'level'"></i>
+                <i class="fas fa-sort-up" *ngIf="sortField === 'level' && sortDirection === 'asc'"></i>
+                <i class="fas fa-sort-down" *ngIf="sortField === 'level' && sortDirection === 'desc'"></i>
+              </th>
+              <th class="sortable" (click)="sortData('departmentName')">
+                Department
+                <i class="fas fa-sort" *ngIf="sortField !== 'departmentName'"></i>
+                <i class="fas fa-sort-up" *ngIf="sortField === 'departmentName' && sortDirection === 'asc'"></i>
+                <i class="fas fa-sort-down" *ngIf="sortField === 'departmentName' && sortDirection === 'desc'"></i>
+              </th>
+              <th class="sortable" *ngIf="isSystemAdmin" (click)="sortData('organizationName')">
+                Company
+                <i class="fas fa-sort" *ngIf="sortField !== 'organizationName'"></i>
+                <i class="fas fa-sort-up" *ngIf="sortField === 'organizationName' && sortDirection === 'asc'"></i>
+                <i class="fas fa-sort-down" *ngIf="sortField === 'organizationName' && sortDirection === 'desc'"></i>
+              </th>
+              <th class="sortable" (click)="sortData('createdAtUtc')">
+                Created Date
+                <i class="fas fa-sort" *ngIf="sortField !== 'createdAtUtc'"></i>
+                <i class="fas fa-sort-up" *ngIf="sortField === 'createdAtUtc' && sortDirection === 'asc'"></i>
+                <i class="fas fa-sort-down" *ngIf="sortField === 'createdAtUtc' && sortDirection === 'desc'"></i>
+              </th>
+              <th class="actions-column">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="isLoading" class="loading-row">
+              <td [attr.colspan]="isSystemAdmin ? '9' : '8'" class="loading-cell">
+                <div class="loading-spinner">
+                  <i class="fas fa-spinner fa-spin"></i>
+                  <span>Loading positions...</span>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="!isLoading && paginatedData.length === 0" class="empty-row">
+              <td [attr.colspan]="isSystemAdmin ? '9' : '8'" class="empty-cell">
+                <div class="empty-state">
+                  <i class="fas fa-briefcase"></i>
+                  <h3>No positions found</h3>
+                  <p>Create your first position to get started</p>
+                </div>
+              </td>
+            </tr>
+            <tr *ngFor="let position of paginatedData" class="data-row" [hidden]="isLoading">
+              <td class="checkbox-column">
+                <input type="checkbox" [checked]="selectedItems.has(position.id)" (change)="toggleItemSelection(position.id)"
+                  class="form-check-input">
+              </td>
+              <td class="item-name">
+                <div class="position-info">
+                  <div class="position-code">{{ position.code }}</div>
+                  <div class="position-name">{{ position.name }}</div>
+                </div>
+              </td>
+              <td class="status">
+                <div class="status-container">
+                  <div class="status-indicator" [class]="getStatusClass(position.isActive)">
+                    <i class="fas" [class]="getStatusIcon(position.isActive)"></i>
+                  </div>
+                  <span class="status-text" [class]="getStatusClass(position.isActive)">
+                    {{ position.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                </div>
+              </td>
+              <td class="level">{{ position.level || '-' }}</td>
+              <td class="department">{{ position.departmentName || '-' }}</td>
+              <td class="organization" *ngIf="isSystemAdmin">
+                <div class="organization-badge">
+                  <span>{{ position.organizationName || '-' }}</span>
+                </div>
+              </td>
+              <td class="created-date">{{ formatDate(position.createdAtUtc) }}</td>
+              <td class="actions">
+                <div class="action-buttons">
+                  <button class="action-btn action-btn-view" (click)="openViewDialog(position)" title="View">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  <button class="action-btn action-btn-edit" 
+                    [class.disabled]="!canEditItem(position)"
+                    [disabled]="!canEditItem(position)"
+                    (click)="openEditDialog(position)" 
+                    [title]="canEditItem(position) ? 'Edit' : 'You can only edit positions from your own organization'">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <div class="action-dropdown" [class.active]="position.showDropdown">
+                    <button class="action-btn action-btn-more dropdown-toggle" (click)="toggleDropdown(position, $event)"
+                      title="More Actions">
+                      <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                    <div class="dropdown-menu" *ngIf="position.showDropdown" (click)="$event.stopPropagation()">
+                      <button class="dropdown-item toggle-action" (click)="toggleActiveStatus(position); position.showDropdown = false">
+                        <i class="fas" [class.fa-power-off]="position.isActive" [class.fa-check-circle]="!position.isActive"></i>
+                        <span>{{ position.isActive ? 'Deactivate' : 'Activate' }}</span>
+                      </button>
+                      <button *hasPermission="'Positions.Create'" class="dropdown-item" (click)="clonePosition(position); position.showDropdown = false">
+                        <i class="fas fa-copy"></i>
+                        <span>Clone</span>
+                      </button>
+                      <button class="dropdown-item delete"
+                        [class.disabled]="!canDeleteItem(position)"
+                        [disabled]="!canDeleteItem(position)"
+                        (click)="openDeleteDialog([position]); position.showDropdown = false"
+                        [title]="canDeleteItem(position) ? 'Delete' : 'You can only delete positions from your own organization'">
+                        <i class="fas fa-trash-alt"></i>
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Mobile Card View -->
+    <div class="mobile-cards" *ngIf="isMobile">
+      <div *ngIf="isLoading" class="loading-spinner">
+        <i class="fas fa-spinner fa-spin"></i>
+        <span>Loading positions...</span>
+      </div>
+
+      <div *ngIf="!isLoading && paginatedData.length === 0" class="empty-state">
+        <i class="fas fa-briefcase"></i>
+        <h3>No positions found</h3>
+        <p>Create your first position to get started</p>
+      </div>
+
+      <div *ngFor="let position of paginatedData" class="mobile-card" [hidden]="isLoading">
+        <div class="mobile-card-header">
+          <div class="mobile-card-checkbox">
+            <input type="checkbox" [checked]="selectedItems.has(position.id)" (change)="toggleItemSelection(position.id)"
+              class="form-check-input">
+          </div>
+          <div class="mobile-card-title">
+            <div class="position-info">
+              <h3>{{ position.name }}</h3>
+              <p class="position-code">{{ position.code }}</p>
+            </div>
+          </div>
+          <div class="mobile-card-status">
+            <div class="status-container">
+              <div class="status-indicator" [class]="getStatusClass(position.isActive)">
+                <i class="fas" [class]="getStatusIcon(position.isActive)"></i>
+              </div>
+              <span class="status-text" [class]="getStatusClass(position.isActive)">
+                {{ position.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mobile-card-body">
+          <div class="mobile-card-grid">
+            <div class="mobile-card-field">
+              <span class="field-label">Code:</span>
+              <span class="field-value">{{ position.code || '-' }}</span>
+            </div>
+            <div class="mobile-card-field">
+              <span class="field-label">Department:</span>
+              <span class="field-value">{{ position.departmentName || '-' }}</span>
+            </div>
+            <div class="mobile-card-field">
+              <span class="field-label">Created:</span>
+              <span class="field-value">{{ formatDate(position.createdAtUtc) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mobile-card-actions">
+          <div class="quick-actions">
+            <button class="icon-btn action-view" (click)="openViewDialog(position)" title="View Details"
+              aria-label="View Details">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button class="icon-btn action-edit" (click)="openEditDialog(position)" title="Edit" aria-label="Edit">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="icon-btn action-toggle" (click)="toggleActiveStatus(position)" title="Toggle Active Status"
+              aria-label="Toggle Active Status" [class.inactive]="!position.isActive">
+              <i class="fas" [class.fa-toggle-on]="!position.isActive" [class.fa-toggle-off]="position.isActive"></i>
+            </button>
+            <button class="icon-btn action-delete" (click)="openDeleteDialog([position])" title="Delete"
+              aria-label="Delete">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination-section" *ngIf="totalPages > 1" (click)="onMainPageClick($event)">
+    <div class="pagination-content">
+      <div class="pagination-info">
+        <span class="items-per-page">
+          <label>Rows per page:</label>
+          <select class="form-select" [(ngModel)]="itemsPerPageFormData"
+            (ngModelChange)="selectItemsPerPageOption($event)">
+            <option *ngFor="let option of getOptionsForField('items-per-page')" [value]="option">{{ option }}</option>
+          </select>
+        </span>
+        <span class="pagination-text">
+          Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to
+          {{ Math.min(currentPage * itemsPerPage, totalItems) }} of
+          {{ totalItems }} entries
+        </span>
+      </div>
+
+      <div class="pagination-controls">
+        <button class="btn btn-outline btn-sm" [disabled]="currentPage === 1" (click)="onPageChange(1)">
+          <i class="fas fa-angle-double-left"></i>
+        </button>
+        <button class="btn btn-outline btn-sm" [disabled]="currentPage === 1" (click)="onPageChange(currentPage - 1)">
+          <i class="fas fa-angle-left"></i>
+        </button>
+
+        <span class="page-info">
+          Page {{ currentPage }} of {{ totalPages }}
+        </span>
+
+        <button class="btn btn-outline btn-sm" [disabled]="currentPage === totalPages"
+          (click)="onPageChange(currentPage + 1)">
+          <i class="fas fa-angle-right"></i>
+        </button>
+        <button class="btn btn-outline btn-sm" [disabled]="currentPage === totalPages"
+          (click)="onPageChange(totalPages)">
+          <i class="fas fa-angle-double-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Dialog -->
+  <div class="modal-overlay" *ngIf="showAddEditDialog">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="header-content">
+          <div class="header-icon">
+            <i class="fas" [class.fa-plus]="dialogMode === 'add'" [class.fa-edit]="dialogMode === 'edit'"></i>
+          </div>
+          <div class="header-text">
+            <h2>{{ dialogMode === 'add' ? 'Add New Position' : 'Edit Position' }}</h2>
+            <p class="modal-subtitle">{{ dialogMode === 'add' ? 'Create a new position' : 'Modify existing position
+              details' }}</p>
+          </div>
+        </div>
+        <button class="btn-close" (click)="closeDialogs()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body" (click)="onModalBodyClick($event)">
+        <form (ngSubmit)="saveItem()" class="modern-form">
+          <div class="form-sections">
+            <div class="form-section">
+              <div class="section-title-container basic-info">
+                <div class="section-icon-wrapper">
+                  <i class="fas fa-briefcase"></i>
+                </div>
+                <div class="section-title-content">
+                  <h3 class="section-title">Position Information</h3>
+                </div>
+                <div class="section-decoration"></div>
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="code" class="form-label">
+                    Code
+                  </label>
+                  <div class="input-wrapper">
+                    <input id="code" type="text" [(ngModel)]="formData.code" name="code"
+                      [class.form-control]="!hasError('code')" [class.form-control-error]="hasError('code')"
+                      placeholder="Enter position code" (blur)="validateField('code')" (input)="validateField('code')"
+                      (focus)="onFormFieldFocus()" required>
+                    <div class="input-status" *ngIf="formData.code && !hasError('code')">
+                      <i class="fas fa-check-circle status-valid"></i>
+                    </div>
+                  </div>
+                  <div class="error-message" *ngIf="hasError('code')">
+                    <span class="error-icon"></span>
+                    {{ getError('code') }}
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="name" class="form-label">Name <span class="required">*</span></label>
+                  <div class="input-wrapper">
+                    <input id="name" type="text" [(ngModel)]="formData.name" name="name"
+                      [class.form-control]="!hasError('name')" [class.form-control-error]="hasError('name')"
+                      placeholder="Enter position name" required (blur)="validateField('name')"
+                      (input)="validateField('name')" (focus)="onFormFieldFocus()">
+                    <div class="input-status" *ngIf="formData.name && !hasError('name')">
+                      <i class="fas fa-check-circle status-valid"></i>
+                    </div>
+                  </div>
+                  <div class="error-message" *ngIf="hasError('name')">
+                    <span class="error-icon"></span>
+                    {{ getError('name') }}
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="description" class="form-label">Description</label>
+                  <textarea id="description" [(ngModel)]="formData.description" name="description"
+                    class="form-control" placeholder="Enter description (optional)"
+                    rows="3" (focus)="onFormFieldFocus()"></textarea>
+                </div>
+
+                <div class="form-group">
+                  <label for="level" class="form-label">Level</label>
+                  <div class="searchable-dropdown">
+                    <div class="dropdown-trigger"
+                      (click)="toggleSearchableDropdown('level'); $event.stopPropagation()">
+                      <span class="dropdown-value">{{ getDisplayValue('level') || 'Select level' }}</span>
+                      <i class="dropdown-icon"></i>
+                    </div>
+
+                    <div class="dropdown-menu" *ngIf="dropdownStates['level']?.isOpen">
+                      <div class="search-input-container">
+                        <input type="text" class="search-input" placeholder="Search levels..."
+                          [value]="dropdownStates['level'].searchTerm" (input)="onSearchInput('level', $event)">
+                        <i class="search-icon"></i>
+                      </div>
+
+                      <div class="dropdown-options">
+                        <div *ngFor="let option of dropdownStates['level']?.filteredOptions"
+                          class="dropdown-option" [class.selected]="getDisplayValue('level') === option"
+                          (click)="selectOption('level', option)">
+                          {{ option }}
+                          <i *ngIf="getDisplayValue('level') === option" class="fas fa-check selected-icon"></i>
+                        </div>
+                        <div *ngIf="dropdownStates['level']?.filteredOptions?.length === 0" class="no-results">
+                          No levels found
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <div class="section-title-container supplier-location">
+                <div class="section-decoration-left"></div>
+                <div class="section-title-content">
+                  <h3 class="section-title">
+                    <span class="title-icon">
+                      <i class="fas fa-cogs"></i>
+                    </span>
+                    Position Details
+                  </h3>
+                  <div class="title-divider"></div>
+                </div>
+                <div class="section-icon-wrapper">
+                  <i class="fas fa-sliders-h"></i>
+                </div>
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="departmentId" class="form-label">Department</label>
+                  <div class="searchable-dropdown">
+                    <div class="dropdown-trigger"
+                      (click)="toggleSearchableDropdown('departmentId'); $event.stopPropagation()">
+                      <span class="dropdown-value">{{ getDisplayValue('departmentId') || 'Select department' }}</span>
+                      <i 
+                        *ngIf="hasDropdownValue('departmentId')"
+                        class="fas fa-times clear-icon"
+                        (click)="clearDropdownValue('departmentId', $event)"
+                        title="Clear selection"
+                      ></i>
+                      <i class="dropdown-icon"></i>
+                    </div>
+
+                    <div class="dropdown-menu" *ngIf="dropdownStates['departmentId']?.isOpen">
+                      <div class="search-input-container">
+                        <input type="text" class="search-input" placeholder="Search departments..."
+                          [value]="dropdownStates['departmentId'].searchTerm" (input)="onSearchInput('departmentId', $event)">
+                        <i class="search-icon"></i>
+                      </div>
+
+                      <div class="dropdown-options">
+                        <div *ngFor="let option of dropdownStates['departmentId']?.filteredOptions"
+                          class="dropdown-option" 
+                          [class.selected]="formData.departmentId && option.startsWith(formData.departmentId + '|')"
+                          (click)="selectOption('departmentId', option)">
+                          {{ option.split('|')[1] || option }}
+                          <i *ngIf="formData.departmentId && option.startsWith(formData.departmentId + '|')" class="fas fa-check selected-icon"></i>
+                        </div>
+                        <div *ngIf="dropdownStates['departmentId']?.filteredOptions?.length === 0" class="no-results">
+                          No departments found
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+
+                <div class="form-group">
+                  <label for="sortOrder" class="form-label">Sort Order</label>
+                  <div class="input-wrapper">
+                    <input id="sortOrder" type="number" [(ngModel)]="formData.sortOrder" name="sortOrder"
+                      class="form-control" placeholder="Enter sort order" min="0" value="0"
+                      (focus)="onFormFieldFocus()">
+                  </div>
+                </div>
+
+                <div class="form-group" *ngIf="dialogMode === 'edit'">
+                  <label for="isActive" class="form-label">Active Status</label>
+                  <div class="simple-status-toggle">
+                    <label class="toggle-switch">
+                      <input id="isActive" type="checkbox" [(ngModel)]="formData.isActive" name="isActive">
+                      <span class="toggle-slider"></span>
+                    </label>
+                    <span class="status-text" [class]="formData.isActive ? 'active' : 'inactive'">
+                      {{ formData.isActive ? 'Active' : 'Inactive' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-outline" (click)="closeDialogs()">
+              <i class="fas fa-times"></i>
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="isSubmitting">
+              <i class="fas" [class.fa-plus]="dialogMode === 'add' && !isSubmitting"
+                [class.fa-save]="dialogMode === 'edit' && !isSubmitting" [class.fa-spinner]="isSubmitting"
+                [class.fa-spin]="isSubmitting"></i>
+              {{ isSubmitting ? 'Saving...' : (dialogMode === 'add' ? 'Create Position' : 'Save Changes') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Dialog -->
+  <div class="modal-overlay" *ngIf="showViewDialog">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="header-content">
+          <div class="header-icon">
+            <i class="fas fa-briefcase"></i>
+          </div>
+          <div class="header-text">
+            <h2>Position Details</h2>
+            <p class="modal-subtitle" *ngIf="selectedItem">{{ selectedItem.name }}</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-outline btn-sm" (click)="exportPositionDetailsAsPDF()" title="Export as PDF">
+            <i class="fas fa-file-pdf"></i>
+            Export PDF
+          </button>
+          <button class="btn-close" (click)="closeDialogs()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-body">
+        <div class="profile-form" *ngIf="selectedItem">
+
+          <!-- Position Details Card -->
+          <div class="info-card">
+            <div class="card-header">
+              <div class="card-header-content">
+                <div class="card-icon personal">
+                  <i class="fas fa-info-circle"></i>
+                </div>
+                <div>
+                  <h2 class="card-title">Position Information</h2>
+                  <p class="card-subtitle">Position name, code, and basic information</p>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-field">
+                  <label class="field-label">Name</label>
+                  <div class="field-value">{{ selectedItem.name }}</div>
+                </div>
+                <div class="form-field" *ngIf="selectedItem.code">
+                  <label class="field-label">Code</label>
+                  <div class="field-value">{{ selectedItem.code }}</div>
+                </div>
+              </div>
+              <div class="form-row" *ngIf="selectedItem.description">
+                <div class="form-field full-width">
+                  <label class="field-label">Description</label>
+                  <div class="field-value">{{ selectedItem.description }}</div>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-field" *ngIf="selectedItem.level">
+                  <label class="field-label">Level</label>
+                  <div class="field-value">{{ selectedItem.level }}</div>
+                </div>
+                <div class="form-field">
+                  <label class="field-label">Status</label>
+                  <div class="field-value">
+                    <span class="status-badge" [class]="getStatusClass(selectedItem.isActive)">
+                      {{ selectedItem.isActive ? 'Active' : 'Inactive' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Additional Information Card -->
+          <div class="info-card">
+            <div class="card-header">
+              <div class="card-header-content">
+                <div class="card-icon work">
+                  <i class="fas fa-chart-line"></i>
+                </div>
+                <div>
+                  <h2 class="card-title">Additional Information</h2>
+                  <p class="card-subtitle">Department, salary range, and organizational details</p>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-field" *ngIf="selectedItem.departmentName">
+                  <label class="field-label">Department</label>
+                  <div class="field-value">{{ selectedItem.departmentName }}</div>
+                </div>
+                <div class="form-field">
+                  <label class="field-label">Sort Order</label>
+                  <div class="field-value">{{ selectedItem.sortOrder }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dates & Metadata Section -->
+          <div class="info-card">
+            <div class="card-header">
+              <div class="card-header-content">
+                <div class="card-icon work">
+                  <i class="fas fa-calendar"></i>
+                </div>
+                <div>
+                  <h2 class="card-title">Dates & Metadata</h2>
+                  <p class="card-subtitle">Creation and modification information</p>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-field">
+                  <label class="field-label">Created Date</label>
+                  <div class="field-value">{{ selectedItem.createdAtUtc ? formatDateTime(selectedItem.createdAtUtc) : '-' }}</div>
+                </div>
+                <div class="form-field">
+                  <label class="field-label">Created By</label>
+                  <div class="field-value">{{ selectedItem.createdBy || '-' }}</div>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-field">
+                  <label class="field-label">Modified Date</label>
+                  <div class="field-value">{{ selectedItem.lastModifiedAtUtc ? formatDateTime(selectedItem.lastModifiedAtUtc) : '-' }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-outline" (click)="closeDialogs()">
+            Close
+          </button>
+          <button class="btn btn-primary" (click)="openEditDialog(selectedItem!); showViewDialog = false" *hasPermission="'Positions.Update'">
+            <i class="fas fa-edit"></i>
+            Edit Position
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Dialog -->
+  <div class="modal-overlay" *ngIf="showDeleteDialog">
+    <div class="modal modal-sm modal-danger">
+      <div class="modal-header">
+        <div class="header-content">
+          <div class="header-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          <div class="header-text">
+            <h2>Delete Position</h2>
+            <p class="modal-subtitle">This action cannot be undone</p>
+          </div>
+        </div>
+        <button class="btn-close" (click)="closeDialogs()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="warning-content">
+          <div class="warning-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+
+          <div class="warning-text">
+            <p>
+              This action cannot be undone. This will permanently delete
+              <span class="item-count">
+                {{ deleteItemCount }} {{ deleteItemCount === 1 ? 'position' : 'positions' }}
+              </span>
+              from the system.
+            </p>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-outline" (click)="closeDialogs()">
+            <i class="fas fa-times"></i>
+            Cancel
+          </button>
+          <button class="btn btn-danger" (click)="confirmDelete()">
+            <i class="fas fa-trash"></i>
+            Delete {{ deleteItemCount === 1 ? 'Position' : 'Positions' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import Dialog -->
+  <div class="modal-overlay" *ngIf="showImportDialog">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="header-content">
+          <div class="header-icon">
+            <i class="fas fa-file-import"></i>
+          </div>
+          <div class="header-text">
+            <h2>Import Positions</h2>
+            <p class="modal-subtitle">Upload CSV or Excel file to import positions</p>
+          </div>
+        </div>
+        <button class="btn-close" (click)="closeImportDialog()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="import-container">
+          <!-- Step 1: Download Template -->
+          <div class="import-section">
+            <div class="section-header">
+              <i class="fas fa-download"></i>
+              <h3>Step 1: Download Template</h3>
+            </div>
+            <p class="section-description">Download the Excel template with all required columns. Fill in your data
+              following the sample format.</p>
+            <button class="btn btn-outline" type="button" (click)="downloadTemplate()">
+              <i class="fas fa-file-download"></i>
+              <span>Download Template</span>
+            </button>
+          </div>
+
+          <!-- Step 2: Upload File -->
+          <div class="import-section">
+            <div class="section-header">
+              <i class="fas fa-upload"></i>
+              <h3>Step 2: Upload File</h3>
+            </div>
+            <p class="section-description">Select a CSV or Excel file. Maximum size: 5MB</p>
+
+            <div class="file-upload-area" [class.has-file]="selectedFile" (dragover)="onDragOver($event)"
+              (dragenter)="onDragEnter($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)">
+              <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" (change)="onFileSelected($event)"
+                style="display: none;">
+
+              <div *ngIf="!selectedFile" class="upload-placeholder" (click)="triggerFileInput()">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Click to browse or drag and drop</p>
+                <span>Supported: CSV, Excel (.xlsx, .xls)</span>
+              </div>
+
+              <div *ngIf="selectedFile" class="file-selected">
+                <div class="file-info">
+                  <i class="fas fa-file-excel"></i>
+                  <div class="file-details">
+                    <span class="file-name">{{ selectedFile.name }}</span>
+                    <span class="file-size">{{ (selectedFile.size / 1024).toFixed(2) }} KB</span>
+                  </div>
+                </div>
+                <div class="file-actions">
+                  <button class="btn-browse" type="button" (click)="triggerFileInput()" title="Browse for another file">
+                    <i class="fas fa-folder-open"></i>
+                  </button>
+                  <button class="btn-remove" type="button" (click)="removeSelectedFile()" title="Remove file">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Import Errors -->
+          <div class="import-section" *ngIf="importErrors.length > 0">
+            <div class="section-header">
+              <i class="fas fa-exclamation-triangle"></i>
+              <h3>Import Errors ({{ importErrors.length }})</h3>
+            </div>
+            <p class="section-description">The following errors occurred during import. Please fix these issues and try
+              again.</p>
+
+            <div class="import-errors">
+              <div class="error-header">
+                <button *ngIf="errorReportId" class="btn-download-error-report" (click)="downloadErrorReport()"
+                  type="button">
+                  <i class="fas fa-download"></i>
+                  Download Detailed Report
+                </button>
+              </div>
+              <div class="error-list">
+                <div class="error-item" *ngFor="let error of importErrors">
+                  <i class="fas fa-times-circle"></i>
+                  <span>{{ error }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Import Instructions -->
+          <div class="import-section">
+            <div class="section-header">
+              <i class="fas fa-info-circle"></i>
+              <h3>Import Instructions</h3>
+            </div>
+            <p class="section-description">Follow these guidelines to ensure successful import of your position data.</p>
+
+            <div class="import-instructions">
+              <ul>
+                <li><strong>Required Headers:</strong> Name, Code, Description, Level, Department, Sort Order, Status</li>
+                <li><strong>Required Fields:</strong> Name is mandatory</li>
+                <li><strong>Code:</strong> Optional unique identifier for the position</li>
+                <li><strong>Salary:</strong> Optional numeric values (decimal supported)</li>
+                <li><strong>Status:</strong> Must be "Active" or "Inactive" (case-insensitive)</li>
+                <li><strong>Duplicates:</strong> Rows with existing codes will be automatically skipped</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-outline" type="button" (click)="closeImportDialog()" [disabled]="isImporting">
+            <i class="fas fa-times"></i>
+            Cancel
+          </button>
+          <button class="btn btn-primary" type="button" (click)="importData()"
+            [disabled]="!selectedFile || isImporting">
+            <i class="fas" [class.fa-file-import]="!isImporting" [class.fa-spinner]="isImporting"
+              [class.fa-spin]="isImporting"></i>
+            {{ isImporting ? 'Importing...' : 'Import Data' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import History Dialog -->
+  <div class="modal-overlay" *ngIf="showImportHistoryDialog">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="header-content">
+          <div class="header-icon">
+            <i class="fas fa-history"></i>
+          </div>
+          <div class="header-text">
+            <h2>Import/Export History</h2>
+            <p class="modal-subtitle">View all position import and export operations</p>
+          </div>
+        </div>
+        <button class="btn-close" (click)="closeImportHistoryDialog()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="import-history-container">
+          <!-- History Type Filters -->
+          <div class="history-filters">
+            <button
+              class="filter-btn"
+              [class.active]="historyType === undefined"
+              (click)="filterHistory('all')">
+              All
+            </button>
+            <button
+              class="filter-btn"
+              [class.active]="historyType === 'import'"
+              (click)="filterHistory('import')">
+              <i class="fas fa-upload"></i> Import
+            </button>
+            <button
+              class="filter-btn"
+              [class.active]="historyType === 'export'"
+              (click)="filterHistory('export')">
+              <i class="fas fa-download"></i> Export
+            </button>
+          </div>
+
+          <!-- Loading State -->
+          <div *ngIf="isLoadingHistory" class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>Loading history...</span>
+          </div>
+
+          <!-- Empty State -->
+          <div *ngIf="!isLoadingHistory && history.length === 0" class="empty-state">
+            <i class="fas fa-history"></i>
+            <h3>No history found</h3>
+            <p>History will appear here after you import or export positions</p>
+          </div>
+
+          <!-- History Table (Desktop) -->
+          <div *ngIf="!isLoadingHistory && history.length > 0 && !isMobile" class="history-table-wrapper">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>File Name</th>
+                  <th>Format</th>
+                  <th>Date</th>
+                  <th>Progress</th>
+                  <th>Status</th>
+                  <th class="text-center">Total Rows</th>
+                  <th class="text-center">Success</th>
+                  <th class="text-center">Updated</th>
+                  <th class="text-center">Skipped</th>
+                  <th class="text-center">Errors</th>
+                  <th>Strategy</th>
+                  <th>File Size</th>
+                  <th>User</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let h of history">
+                  <td>
+                    <span class="operation-badge" [class.import]="h.operationType === 'Import'" [class.export]="h.operationType === 'Export'">
+                      <i class="fas" [class.fa-upload]="h.operationType === 'Import'" [class.fa-download]="h.operationType === 'Export'"></i>
+                      {{ h.operationType }}
+                    </span>
+                  </td>
+                  <td class="file-name">
+                    <i class="fas fa-file-excel"></i>
+                    {{ h.fileName }}
+                  </td>
+                  <td>
+                    <span class="format-badge">{{ h.format }}</span>
+                  </td>
+                  <td>{{ formatDateTime(h.createdAtUtc) }}</td>
+                  <td class="progress-column">
+                    <div *ngIf="isCurrentJob(h)" class="mini-progress">
+                      <div class="mini-progress-bar">
+                        <div class="mini-progress-fill" [style.width.%]="h.progress"></div>
+                      </div>
+                      <span class="mini-progress-text">{{ h.progress }}%</span>
+                    </div>
+                    <div *ngIf="!isCurrentJob(h) && (h.status === 'Processing' || h.status === 'Pending')" class="mini-progress">
+                      <div class="mini-progress-bar">
+                        <div class="mini-progress-fill" [style.width.%]="h.progress"></div>
+                      </div>
+                      <span class="mini-progress-text">{{ h.progress }}%</span>
+                    </div>
+                    <span *ngIf="!isCurrentJob(h) && h.status !== 'Processing' && h.status !== 'Pending'">{{ h.progress }}%</span>
+                  </td>
+                  <td>
+                    <span [ngClass]="getHistoryStatusClass(h.status)">
+                      {{ h.status }}
+                    </span>
+                  </td>
+                  <td class="text-center">{{ h.totalRows }}</td>
+                  <td class="text-center">
+                    <span class="badge badge-success" *ngIf="h.successCount > 0">
+                      {{ h.successCount }}
+                    </span>
+                    <span *ngIf="h.successCount === 0">-</span>
+                  </td>
+                  <td class="text-center">
+                    <span class="badge badge-info" *ngIf="h.updatedCount > 0">
+                      {{ h.updatedCount }}
+                    </span>
+                    <span *ngIf="h.updatedCount === 0">-</span>
+                  </td>
+                  <td class="text-center">
+                    <span class="badge badge-warning" *ngIf="h.skippedCount > 0">
+                      {{ h.skippedCount }}
+                    </span>
+                    <span *ngIf="h.skippedCount === 0">-</span>
+                  </td>
+                  <td class="text-center">
+                    <div *ngIf="h.errorCount > 0">
+                      <span class="badge badge-danger">{{ h.errorCount }}</span>
+                    </div>
+                    <span *ngIf="h.errorCount === 0">-</span>
+                  </td>
+                  <td>
+                    <span class="strategy-badge" *ngIf="h.duplicateHandlingStrategy">
+                      {{ getStrategyDisplayName(h.duplicateHandlingStrategy) }}
+                    </span>
+                    <span *ngIf="!h.duplicateHandlingStrategy">-</span>
+                  </td>
+                  <td>{{ formatFileSize(h.fileSizeBytes) }}</td>
+                  <td>{{ h.importedBy }}</td>
+                  <td>
+                    <button *ngIf="h.operationType === 'Import' && h.errorReportId"
+                            class="btn-download-error-report btn-sm"
+                            (click)="downloadErrorReportForHistory(h.id)"
+                            title="Download Error Report">
+                      <i class="fas fa-file-csv"></i>
+                    </button>
+                    <button *ngIf="h.operationType === 'Export' && h.status === 'Completed'"
+                            class="btn-download-error-report btn-sm"
+                            (click)="downloadExportFromHistory(h.id)"
+                            title="Download Export">
+                      <i class="fas fa-download"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- History Mobile Cards -->
+          <div *ngIf="!isLoadingHistory && history.length > 0 && isMobile" class="mobile-cards">
+            <div *ngFor="let h of history" class="mobile-card">
+              <div class="mobile-card-header">
+                <div class="mobile-card-title">
+                  <span class="operation-badge" [class.import]="h.operationType === 'Import'" [class.export]="h.operationType === 'Export'">
+                    <i class="fas" [class.fa-upload]="h.operationType === 'Import'" [class.fa-download]="h.operationType === 'Export'"></i>
+                    {{ h.operationType }}
+                  </span>
+                  <span [ngClass]="getHistoryStatusClass(h.status)" class="status-badge-mobile">
+                    {{ h.status }}
+                  </span>
+                </div>
+              </div>
+              <div class="mobile-card-body">
+                <div class="mobile-card-grid">
+                  <div class="mobile-card-field">
+                    <span class="field-label">File Name</span>
+                    <span class="field-value">
+                      <i class="fas fa-file-excel"></i>
+                      {{ h.fileName }}
+                    </span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">Format</span>
+                    <span class="field-value">
+                      <span class="format-badge">{{ h.format }}</span>
+                    </span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">Date</span>
+                    <span class="field-value">{{ formatDateTime(h.createdAtUtc) }}</span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">Progress</span>
+                    <span class="field-value">
+                      <div *ngIf="isCurrentJob(h) || (h.status === 'Processing' || h.status === 'Pending')" class="mini-progress">
+                        <div class="mini-progress-bar">
+                          <div class="mini-progress-fill" [style.width.%]="h.progress"></div>
+                        </div>
+                        <span class="mini-progress-text">{{ h.progress }}%</span>
+                      </div>
+                      <span *ngIf="!isCurrentJob(h) && h.status !== 'Processing' && h.status !== 'Pending'">{{ h.progress }}%</span>
+                    </span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">Total Rows</span>
+                    <span class="field-value">{{ h.totalRows }}</span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">Success</span>
+                    <span class="field-value">
+                      <span class="badge badge-success" *ngIf="h.successCount > 0">{{ h.successCount }}</span>
+                      <span *ngIf="h.successCount === 0">-</span>
+                    </span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">Updated</span>
+                    <span class="field-value">
+                      <span class="badge badge-info" *ngIf="h.updatedCount > 0">{{ h.updatedCount }}</span>
+                      <span *ngIf="h.updatedCount === 0">-</span>
+                    </span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">Skipped</span>
+                    <span class="field-value">
+                      <span class="badge badge-warning" *ngIf="h.skippedCount > 0">{{ h.skippedCount }}</span>
+                      <span *ngIf="h.skippedCount === 0">-</span>
+                    </span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">Errors</span>
+                    <span class="field-value">
+                      <span class="badge badge-danger" *ngIf="h.errorCount > 0">{{ h.errorCount }}</span>
+                      <span *ngIf="h.errorCount === 0">-</span>
+                    </span>
+                  </div>
+                  <div class="mobile-card-field" *ngIf="h.duplicateHandlingStrategy">
+                    <span class="field-label">Strategy</span>
+                    <span class="field-value">
+                      <span class="strategy-badge">{{ getStrategyDisplayName(h.duplicateHandlingStrategy) }}</span>
+                    </span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">File Size</span>
+                    <span class="field-value">{{ formatFileSize(h.fileSizeBytes) }}</span>
+                  </div>
+                  <div class="mobile-card-field">
+                    <span class="field-label">User</span>
+                    <span class="field-value">{{ h.importedBy }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="mobile-card-actions" *ngIf="(h.operationType === 'Import' && h.errorReportId) || (h.operationType === 'Export' && h.status === 'Completed')">
+                <div class="quick-actions">
+                  <button *ngIf="h.operationType === 'Import' && h.errorReportId"
+                          class="icon-btn action-download"
+                          (click)="downloadErrorReportForHistory(h.id)"
+                          title="Download Error Report">
+                    <i class="fas fa-file-csv"></i>
+                  </button>
+                  <button *ngIf="h.operationType === 'Export' && h.status === 'Completed'"
+                          class="icon-btn action-download"
+                          (click)="downloadExportFromHistory(h.id)"
+                          title="Download Export">
+                    <i class="fas fa-download"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pagination -->
+          <div *ngIf="!isLoadingHistory && historyTotalCount > historyPageSize" class="history-pagination">
+            <div class="pagination-info">
+              <span>
+                Showing {{ (historyPage - 1) * historyPageSize + 1 }} to
+                {{ Math.min(historyPage * historyPageSize, historyTotalCount) }} of
+                {{ historyTotalCount }} entries
+              </span>
+            </div>
+            <div class="pagination-controls">
+              <button class="btn btn-outline btn-sm" [disabled]="historyPage === 1"
+                (click)="goToHistoryPage(1)">
+                <i class="fas fa-angle-double-left"></i>
+              </button>
+              <button class="btn btn-outline btn-sm" [disabled]="historyPage === 1"
+                (click)="goToHistoryPage(historyPage - 1)">
+                <i class="fas fa-angle-left"></i>
+              </button>
+              <span class="page-info">
+                Page {{ historyPage }} of {{ getHistoryTotalPages() }}
+              </span>
+              <button class="btn btn-outline btn-sm" [disabled]="historyPage === getHistoryTotalPages()"
+                (click)="goToHistoryPage(historyPage + 1)">
+                <i class="fas fa-angle-right"></i>
+              </button>
+              <button class="btn btn-outline btn-sm" [disabled]="historyPage === getHistoryTotalPages()"
+                (click)="goToHistoryPage(getHistoryTotalPages())">
+                <i class="fas fa-angle-double-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-outline" (click)="closeImportHistoryDialog()">
+            <i class="fas fa-times"></i>
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export Progress Dialog -->
+  <div class="modal-overlay" *ngIf="showExportDialog">
+    <div class="modal modal-md">
+      <div class="modal-header">
+        <div class="header-content">
+          <div class="header-icon">
+            <i class="fas fa-download"></i>
+          </div>
+          <div class="header-text">
+            <h2>Export Progress</h2>
+            <p class="modal-subtitle">Your export is being processed</p>
+          </div>
+        </div>
+        <button class="btn-close" (click)="closeExportDialog()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="export-progress-container">
+          <div class="status-icon" [ngSwitch]="exportStatus">
+            <i *ngSwitchCase="'Pending'" class="fas fa-clock fa-3x text-warning"></i>
+            <i *ngSwitchCase="'Processing'" class="fas fa-spinner fa-spin fa-3x text-primary"></i>
+            <i *ngSwitchCase="'Completed'" class="fas fa-check-circle fa-3x text-success"></i>
+            <i *ngSwitchCase="'Failed'" class="fas fa-times-circle fa-3x text-danger"></i>
+          </div>
+
+          <h3>{{ exportStatus }}</h3>
+
+          <div class="progress-container" *ngIf="exportStatus === 'Processing' || exportStatus === 'Pending'">
+            <div class="progress-bar">
+              <div class="progress-fill" [style.width.%]="exportProgress"></div>
+            </div>
+            <p class="progress-text">{{ exportProgress }}%</p>
+          </div>
+
+          <p class="export-message" *ngIf="exportStatus === 'Processing'">
+            Please wait while we generate your export file. This may take a few moments for large datasets.
+          </p>
+          <p class="export-message" *ngIf="exportStatus === 'Pending'">
+            Your export job is queued and will start shortly...
+          </p>
+          <p class="export-message text-success" *ngIf="exportStatus === 'Completed'">
+            Export completed successfully! Your file will download automatically.
+          </p>
+          <p class="export-message text-danger" *ngIf="exportStatus === 'Failed'">
+            Export failed. Please try again or check the history for details.
+          </p>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-outline" (click)="closeExportDialog()">
+          {{ exportStatus === 'Completed' || exportStatus === 'Failed' ? 'Close' : 'Run in Background' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Notifications -->
+  <app-notification-container></app-notification-container>
+</div>

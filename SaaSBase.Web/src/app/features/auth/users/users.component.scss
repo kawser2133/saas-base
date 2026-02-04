@@ -1,0 +1,211 @@
+// Users Component Styles
+
+.users-page {
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+}
+
+// ===== USER PROFILE PICTURE STYLES =====
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.user-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-weight: 600;
+  // font-size: 14px;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-email {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Mobile card user info
+.mobile-card-title .user-info {
+  gap: 10px;
+}
+
+.mobile-card-title .user-avatar {
+  width: 36px;
+  height: 36px;
+}
+
+.mobile-card-title .user-details h3 {
+  font-size: 16px;
+  margin-bottom: 2px;
+}
+
+.mobile-card-title .user-details .user-email {
+  font-size: 13px;
+}
+
+// View dialog entity avatar
+.entity-card {
+  .entity-info {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    // padding: 2rem;
+  }
+}
+
+.entity-avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.entity-avatar .avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.entity-avatar .avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 20px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+// Progress column width
+.progress-column {
+  min-width: 120px;
+}
+
+// Role badges container for multiple roles
+.role-badges-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background-color: var(--primary-color, #007bff);
+  color: white;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .role-badge-icon {
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  
+  .role-badge-text {
+    line-height: 1.2;
+  }
+  
+  // Ensure text is readable on colored backgrounds
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+// Multi-select checkbox indicator
+.checkbox-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-color, #ddd);
+  border-radius: 3px;
+  margin-right: 8px;
+  flex-shrink: 0;
+  
+  .dropdown-option.selected & {
+    background-color: var(--primary-color, #007bff);
+    border-color: var(--primary-color, #007bff);
+    color: white;
+  }
+  
+  i {
+    font-size: 12px;
+  }
+}
+
+.dropdown-option {
+  display: flex;
+  align-items: center;
+  
+  &.selected {
+    background-color: var(--primary-light, rgba(0, 123, 255, 0.1));
+  }
+}

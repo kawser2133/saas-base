@@ -1,0 +1,8 @@
+<a [routerLink]="linkTo" class="brand-logo" [class.size-sm]="size === 'sm'" [class.size-md]="size === 'md'" [class.size-lg]="size === 'lg'" [class.variant-gradient]="variant === 'gradient'">
+  <div class="logo-icon">
+    <i class="fas fa-cube"></i>
+  </div>
+  <span class="brand-name" *ngIf="showText">
+    <span class="brand-name-saas">SaaS</span><span class="brand-name-base">Base</span>
+  </span>
+</a>

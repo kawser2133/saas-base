@@ -1,0 +1,26 @@
+<header class="public-header">
+  <div class="header-container">
+    <div class="header-content">
+      <!-- Logo and Brand -->
+      <app-brand-logo size="md" [showText]="true" linkTo="/"></app-brand-logo>
+
+      <!-- Desktop Navigation -->
+      <nav class="nav-desktop">
+        <a routerLink="/login" routerLinkActive="active" class="nav-link">Sign In</a>
+        <a routerLink="/setup" class="btn btn-primary">Get Started</a>
+      </nav>
+
+      <!-- Mobile Menu Toggle -->
+      <button class="mobile-menu-toggle" (click)="toggleMenu()" aria-label="Toggle menu">
+        <i class="fas" [class.fa-bars]="!isMenuOpen" [class.fa-times]="isMenuOpen"></i>
+      </button>
+    </div>
+
+    <!-- Mobile Navigation -->
+    <nav class="nav-mobile" [class.open]="isMenuOpen">
+      <a routerLink="/login" routerLinkActive="active" class="nav-link" (click)="closeMenu()">Sign In</a>
+      <a routerLink="/setup" class="btn btn-primary" (click)="closeMenu()">Get Started</a>
+    </nav>
+  </div>
+</header>
+

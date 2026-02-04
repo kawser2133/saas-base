@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: saasbase-postgres
+    environment:
+      POSTGRES_DB: saas_base_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-ChangeThisPassword123!}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: saasbase-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD:-ChangeThisPassword123!}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: SaaSBase.Api/Dockerfile
+    container_name: saasbase-api
+    environment:
+      - ConnectionStrings__Default=Host=postgres;Port=5432;Database=saas_base_db;Username=postgres;Password=${DB_PASSWORD:-ChangeThisPassword123!}
+      - Redis__Configuration=redis:6379,password=${REDIS_PASSWORD:-ChangeThisPassword123!}
+      - Jwt__Key=${JWT_SECRET_KEY:-ChangeThisToA64CharacterRandomStringForProductionUse}
+      - Jwt__Issuer=saasbase
+      - Jwt__Audience=saasbase-clients
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:80
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "5091:80"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./SaaSBase.Web
+      dockerfile: Dockerfile
+    container_name: saasbase-web
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
