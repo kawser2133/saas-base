@@ -53,10 +53,6 @@ SaaSBase provides a complete, production-grade foundation with enterprise featur
 - Modern, responsive design
 - Standalone components architecture
 
-![Mobile Version 1](SaaSBase.Screenshots/Fully_Responsive_Mobile_Version%20(1).png)
-
-![Mobile Version 2](SaaSBase.Screenshots/Fully_Responsive_Mobile_Version%20(2).png)
-
 ### Database: ORM-based (EF Core)
 - PostgreSQL by default
 - Easily switchable to other databases (SQL Server, MySQL, etc.)
@@ -71,8 +67,6 @@ SaaSBase provides a complete, production-grade foundation with enterprise featur
 - Multi-factor authentication (MFA) support
 - Password policy enforcement
 - Session management
-
-![Login Page](SaaSBase.Screenshots/Login_Page.png)
 
 ![User Management](SaaSBase.Screenshots/User_Management.png)
 
@@ -92,8 +86,6 @@ SaaSBase provides a complete, production-grade foundation with enterprise featur
 - **Tenant-specific configurations** and settings
 
 ![Organization Setup](SaaSBase.Screenshots/Organization_Setup.png)
-
-![Organization Management](SaaSBase.Screenshots/Organization_Management.png)
 
 ![Organization Settings](SaaSBase.Screenshots/Organization_Settings.png)
 
@@ -127,8 +119,6 @@ SaaSBase provides a complete, production-grade foundation with enterprise featur
 - Notification templates
 
 ![System Admin Dashboard](SaaSBase.Screenshots/System_Admin_Dashboard.png)
-
-![Company Admin Dashboard](SaaSBase.Screenshots/Company_Admin_Dashboard.png)
 
 ![Profile Settings](SaaSBase.Screenshots/Profile_Settings.png)
 
