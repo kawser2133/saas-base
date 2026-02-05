@@ -70,7 +70,7 @@ SaaSBase provides a complete, production-grade foundation with enterprise featur
 
 ![User Management](SaaSBase.Screenshots/User_Management.png)
 
-![Role Hierarchy](SaaSBase.Screenshots/Role_Hierarchy.png)
+![Role Hierarchy](SaaSBase.Screenshots/Fully_Responsive_Mobile_Version%20(2).png)
 
 ### Caching & Performance
 - Redis integrated for caching frequently accessed data
