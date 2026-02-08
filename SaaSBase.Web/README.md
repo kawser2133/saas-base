@@ -102,6 +102,3 @@ src/
 - Unit tests: `npm test`
 - E2E tests: `npm run e2e`
 
-## License
-
-[Specify your license here]
